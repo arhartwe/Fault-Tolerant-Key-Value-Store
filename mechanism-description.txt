@@ -1,0 +1,21 @@
+Mechanism for casual dependency tracking:
+
+Our methodolgy for tracking casual dependency utilized a Counter that maps a replica's 
+socket address with a vector clock. Our implementation resembles the Birman-Schiper-Stephenson Protocol,
+in which we increment a vector clock in a socket's position when it broadcasts a request from the 
+client to the other replicas. Additionally, we maintain a queue for requests when they must wait on previous 
+requests to maintian causal consistency. On every request received from a client, the replica
+compares its local clock with the client's metadata. If the request cannot be delivered, it is
+compared with the clocks of the requests in the queue to potentially result in the delivery of
+a previous request or simply be added to the queue.
+
+Mechanism for detecting downed replica:
+
+We detect a downed replica by using a try, except block on broadcasted requests. If we detect that 
+we did not receive a response from a replica, we broadcast a request to all remaining replicas to
+remove its socket from the view as well as its causual metadata. 
+
+When a downed replica comes back online, it first updates its key-value store with a replica
+that is up. It then updates the causal meta-data it receives from the client with its
+own vector clock. Finally, the reconnected replica broadcasts to the others to place itself in
+their view.   
