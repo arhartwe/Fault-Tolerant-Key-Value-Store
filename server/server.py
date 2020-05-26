@@ -5,6 +5,8 @@ from kvs import *
 from view import *
 import vars
 import os, sys, time, requests
+headers = {'Content-Type': 'application/json'}    
+
 
 server_api = Blueprint('server_api', __name__)
 
@@ -45,7 +47,7 @@ def main_inst(key):
             for replica in vars.view_list:
                 if replica != vars.socket_address:
                     try:
-                        url = "http://" + replica + "/key-value-store-vars.view"
+                        url = "http://" + replica + "/key-value-store-view"
                         requests.put(url, json={'socket-address': vars.socket_address}, headers=headers)
                     except Exception as e:
                         print(e, file=sys.stderr)
@@ -103,8 +105,8 @@ def main_inst(key):
 @server_api.route('/key-value-store-view', methods=['PUT', 'GET', 'DELETE'])
 def replica():
     if request.method == 'GET':
-        resp = {"message": "vars.view retrieved successfully",
-                "vars.view": ','.join(vars.view_list)}
+        resp = {"message": "view retrieved successfully",
+                "view": ','.join(vars.view_list)}
         status = 200
         return make_response(jsonify(resp), status)
 
@@ -122,12 +124,12 @@ def replica():
         if new_socket not in vars.view_list:
 
             vars.view_list.append(new_socket)
-            os.environ['vars.view'] = ','.join(vars.view_list)
+            os.environ['VIEW'] = ','.join(vars.view_list)
 
             broadcast_view(vars.view_list)
 
             try:
-                update_url = 'http://' + new_socket + '/key-value-store-vars.view'
+                update_url = 'http://' + new_socket + '/key-value-store-view'
                 requests.put(update_url, data={'dictionary':vars.key_store, 'socket-address':new_socket}, headers=headers)
             except:
                 pass
@@ -138,7 +140,7 @@ def replica():
 
         else:
             error_message = {
-                "error": "Socket address already exists in the vars.view", "message": "Error in PUT"}
+                "error": "Socket address already exists in the view", "message": "Error in PUT"}
             return make_response(jsonify(error_message), 404)
 
     if request.method == 'DELETE':
@@ -149,24 +151,24 @@ def replica():
         if del_socket in vars.view_list:
             try:
                 vars.view_list.remove(del_socket)
-                os.environ['vars.view'] = ','.join(vars.view_list)
+                os.environ['VIEW'] = ','.join(vars.view_list)
                 del vars.local_clock[del_socket]
             except:
                 error_message = {
-                    "error": "Socket address does not exist in the vars.view", "message": "Error in DELETE"}
+                    "error": "Socket address does not exist in the view", "message": "Error in DELETE"}
                 return make_response(jsonify(error_message), 404)
 
             broadcast_view(vars.view_list)
                             
             try:
-                url = 'http://' + del_socket + '/key-value-store-vars.view'
+                url = 'http://' + del_socket + '/key-value-store-view'
                 requests.delete(url, data=request.get_data(),
                             headers=headers, timeout=5)
             except: 
                 pass
             
             succ_message = {
-                "message": "Replica deleted successfully from the vars.view"}
+                "message": "Replica deleted successfully from the view"}
             return make_response(jsonify(succ_message), 200)
 
 
