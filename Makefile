@@ -17,7 +17,7 @@ network:
 replica1:
 	docker run --rm -p 8082:8085 --net=$(NETWORK) --ip=10.10.0.2 --name="replica1" \
 	-e SOCKET_ADDRESS="10.10.0.2:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085" \
-	$(IMG)
+	-e SHARD_COUNT="2" $(IMG)
 
 replica2:
 	docker run --rm -p 8083:8085 --net=$(NETWORK) --ip=10.10.0.3 --name="replica2" \
