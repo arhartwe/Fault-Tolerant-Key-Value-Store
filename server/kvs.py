@@ -1,5 +1,6 @@
 from flask import json, jsonify, make_response, request
 from view import delete_replica_view
+import vars
 import requests 
 import sys
 
@@ -61,3 +62,15 @@ def kvs_delete(key, key_store):
         msg = {"doesExist": False, "error": "Key does not exist",
                 "message": "Error in DELETE"}
         return msg, 404
+
+def kvs_startup():
+    try:
+        for each in vars.view_list:
+            if vars.socket_address != each:
+                update_url = 'http://' + each + '/key-value-store-view'
+                requests.put(update_url, json={'socket-address': vars.socket_address}, headers=headers)
+                resp = requests.get("http://" + each + "/get-kvs",headers=headers)
+                vars.key_store = (resp.json())["kvs"]
+    except Exception as e:
+        print(e, file=sys.stderr)  
+        pass

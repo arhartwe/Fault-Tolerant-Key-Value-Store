@@ -28,31 +28,12 @@ def main_inst(key):
         status = 500
 
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
-        # Verifies that this replica has recently gone down and may have missed data.
-        # TODO: Change vars.view_list[0] to something else incase this replica is vars.view_list[0] 
-        if type(meta_data) is not str and vars.socket_address not in meta_data.keys():
-            url = "http://" + vars.view_list[0] + "/get-kvs"
-            # Get a KVS from another replica. In this case get it from vars.view_list[0]
-            try:
-                response = requests.get(url, headers=headers)
-                vars.key_store = (response.json())["kvs"]
-            except (requests.exceptions.ConnectionError):
-                pass
-            
+        if type(meta_data) is not str and vars.socket_address not in meta_data.keys():            
             # Add this replica back to the metadata and update our vector clock
             meta_data[vars.socket_address] = vars.local_clock[vars.socket_address]
             vars.local_clock = meta_data
+            kvs_startup() # Get a new kvs and tell other replicas to add this replica to the view
             
-            # Tell other replicas to put this replica back in the vars.view. 
-            for replica in vars.view_list:
-                if replica != vars.socket_address:
-                    try:
-                        url = "http://" + replica + "/key-value-store-view"
-                        requests.put(url, json={'socket-address': vars.socket_address}, headers=headers)
-                    except Exception as e:
-                        print(e, file=sys.stderr)
-                    
-
         if compare_clocks(vars.view_list, meta_data, vars.local_clock, sender_socket):
             
             if put_req:
@@ -146,7 +127,6 @@ def replica():
     if request.method == 'DELETE':
         data = request.get_json()
         del_socket = data['socket-address']
-
 
         if del_socket in vars.view_list:
             try:
