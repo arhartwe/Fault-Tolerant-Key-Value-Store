@@ -3,6 +3,7 @@ from collections import Counter
 from clock import *
 from kvs import *
 from view import *
+import vars
 
 import os, sys, time, requests
 
