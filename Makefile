@@ -15,23 +15,34 @@ network:
 	docker network create --subnet=10.10.0.0/16 $(NETWORK)
 
 replica1:
-	docker run --rm -p 8082:8085 --net=$(NETWORK) --ip=10.10.0.2 --name="replica1" \
-	-e SOCKET_ADDRESS="10.10.0.2:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085" \
-	$(IMG)
+	docker run --rm -p 8082:8085 --net=$(NETWORK) --ip=10.10.0.2 --name="node1" \
+	-e SOCKET_ADDRESS="10.10.0.2:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+	-e SHARD_COUNT="2" $(IMG)
 
 replica2:
-	docker run --rm -p 8083:8085 --net=$(NETWORK) --ip=10.10.0.3 --name="replica2" \
-	-e SOCKET_ADDRESS="10.10.0.3:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085" \
-	$(IMG)
+	docker run --rm -p 8083:8085 --net=$(NETWORK) --ip=10.10.0.3 --name="node2" \
+	-e SOCKET_ADDRESS="10.10.0.3:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+	-e SHARD_COUNT="2" $(IMG)
 
 replica3:
-	docker run --rm -p 8084:8085 --net=mynet --ip=10.10.0.4 --name="replica3" \
-	-e SOCKET_ADDRESS="10.10.0.4:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085" \
-	$(IMG)
+	docker run --rm -p 8084:8085 --net=mynet --ip=10.10.0.4 --name="node3" \
+	-e SOCKET_ADDRESS="10.10.0.4:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+	-e SHARD_COUNT="2" $(IMG)
 
 replica4: 
-	docker run -d -p 8085:8085 --net=mynet --ip=10.10.0.5 --name="replica4" \
-	-e SOCKET_ADDRESS="10.10.0.5:8085" -e VIEW="" $(IMG)	
+	docker run --rm -p 8086:8085 --net=mynet --ip=10.10.0.5 --name="node4" \
+        -e SOCKET_ADDRESS="10.10.0.5:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+        -e SHARD_COUNT="2" $(IMG)
+
+replica5: 
+	docker run --rm -p 8087:8085 --net=mynet --ip=10.10.0.6 --name="node5" \
+        -e SOCKET_ADDRESS="10.10.0.6:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+        -e SHARD_COUNT="2" $(IMG)
+
+replica6:
+	docker run --rm -p 8088:8085 --net=mynet --ip=10.10.0.7 --name="node6" \
+        -e SOCKET_ADDRESS="10.10.0.7:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+	-e SHARD_COUNT="2" $(IMG)
 
 put1:
 	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8082/key-value-store/x
@@ -101,6 +112,12 @@ delete2:
 
 delete3:
 	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8084/key-value-store/x
+
+shardidmembers1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/0
+
+shardidmembers2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/1
 
 
 kill:

@@ -15,7 +15,7 @@ def shard_members(shardID):
             return make_response(response, 400)
         else:
             response["Message"] = "Members of the shard ID retrieved successfully"
-            response["shard-id-members"] = vars.shard_list[shardID]
+            response["shard-id-members"] = vars.shard_list[int(shardID)]
             return make_response(response, 200)
                  
     else:

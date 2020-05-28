@@ -4,4 +4,4 @@ WORKDIR /server
 RUN apt-get update
 EXPOSE 8085
 RUN pip3 install Flask requests
-CMD python3 server.py
+CMD python3 main.py
