@@ -40,9 +40,9 @@ replica5:
         -e SHARD_COUNT="2" $(IMG)
 
 replica6:
-	docker run --rm -p 8084:8085 --net=mynet --ip=10.10.0.4 --name="node3" \
-        -e SOCKET_ADDRESS="10.10.0.4:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
-        -e SHARD_COUNT="2" $(IMG)
+	docker run --rm -p 8088:8085 --net=mynet --ip=10.10.0.7 --name="node6" \
+        -e SOCKET_ADDRESS="10.10.0.7:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
+	-e SHARD_COUNT="2" $(IMG)
 
 put1:
 	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8082/key-value-store/x
