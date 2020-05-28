@@ -14,17 +14,21 @@ shard_api = Blueprint('shard_api', __name__)
 def placeholder():
     print("Hello")
 
-# @shard_api.route('/key-value-store-shard/shard-id-key-count/<shard-id>', methods=['GET'])
-# def key_count():
-#     # For every node in shard
-#     #for every node in #shard variable:
-            
-#     # Get Key-Store from a node in a shard
-#     # get count of keys in this dictionary
-#     # count += number of keys
-#     # return count
-#     return# count
+@shard_api.route('/key-value-store-shard/shard-id-key-count/<shardID>', methods=['GET']) #is it okay if i change this endpoint to shardid?
+def key_count(shardID):
+    # for a given shard id, get nodes belonging to this shard id
+    node_list = vars.shard_list[shardID]
 
+    # get key-store of 1 node from that shard
+    node = node_list[0]
+    request_url = 'http://' + node + '/get-kvs'
+    resp = requests.get(url, headers=headers)
+    node_keys = (resp.json())["kvs"]
+
+    # Every node in a shard should have same # of items in kvs, so kvs * nodes in shard gives total key count
+    count = len(node_keys) * len(node_list)
+    ans = {"message":"Key count of shard ID retrieved successfully","shard-id-key-count":count}
+    return make_response(jsonify(ans), 200)
 
 
 

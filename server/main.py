@@ -12,8 +12,6 @@ app.register_blueprint(shard_api)
 headers = {'Content-Type': 'application/json'}   
 
 def main():
-    print("AGHGGGGGGGGGGGGGGGGGGGGGGGGG")
-    print(str(vars.shard_list), file=sys.stderr)
     kvs_startup()
     app.run(debug=True, host='0.0.0.0', port=8085)
 
