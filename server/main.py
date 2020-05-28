@@ -13,6 +13,7 @@ headers = {'Content-Type': 'application/json'}
 
 def main():
     kvs_startup()
+    print(vars.shard_list, file=sys.stderr)
     app.run(debug=True, host='0.0.0.0', port=8085)
 
 if __name__ == '__main__':

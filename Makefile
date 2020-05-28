@@ -1,4 +1,4 @@
-IMG=assignment3-img
+IMG=assignment4-img
 NETWORK=mynet
 
 .PHONY: all init restart
