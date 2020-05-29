@@ -39,8 +39,8 @@ def main_inst(key):
                     url = "http://" + node + "/key-value-store/" + key
                     try:
                         response = requests.put(url, data=data, headers=headers)
-                        print(response, file=sys.stderr)
-                        return ""
+                        print(response.status_code, file=sys.stderr)
+                        return make_response(response)
                     except:
                         pass
             else:
@@ -48,6 +48,7 @@ def main_inst(key):
                 # delete
         else:
             pass # Go ahead and continue as normal 
+
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
         if type(meta_data) is not str and vars.socket_address not in meta_data.keys():            
             # Add this replica back to the metadata and update our vector clock
@@ -65,7 +66,7 @@ def main_inst(key):
             # If the message is from the client - Increment our local clock and broadcast to other replicas. 
             if sender_socket not in vars.view_list:
                 vars.local_clock[vars.socket_address] += 1
-                broadcast_kvs(vars.view_list, vars.socket_address, vars.local_clock, key, sender_socket) # broadcast with my local clock
+                broadcast_kvs(vars.local_shard, vars.socket_address, vars.local_clock, key, sender_socket) # broadcast with my local clock
             else: # Message is from another replica and we just increment the sender address.
                 vars.local_clock[sender_socket] += 1
         

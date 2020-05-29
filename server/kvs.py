@@ -27,7 +27,7 @@ def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
                     next_replica = view_list.index(replica) + 1
                     # Keep broadcasting to rest of nodes
                     broadcast_kvs(view_list[next_replica:], socket_address, local_clock, key, request_address)
-                    delete_replica_view(socket_address, replica)
+                    # delete_replica_view(socket_address, replica)
 def kvs_put(key, req, key_store):
     response = req.get_json()
     if 'value' not in response:
@@ -66,7 +66,7 @@ def kvs_delete(key, key_store):
 
 def kvs_startup():
     try:
-        for each in vars.view_list:
+        for each in vars.local_shard:
             if vars.socket_address != each:
                 update_url = 'http://' + each + '/key-value-store-view'
                 requests.put(update_url, json={'socket-address': vars.socket_address}, headers=headers)
