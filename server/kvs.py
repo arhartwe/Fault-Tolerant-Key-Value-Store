@@ -72,5 +72,5 @@ def kvs_startup():
                 resp = requests.get("http://" + each + "/get-kvs",headers=headers)
                 vars.key_store = (resp.json())["kvs"]
     except Exception as e:
-        print(e, file=sys.stderr)  
+        # print(e, file=sys.stderr)  
         pass

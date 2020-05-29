@@ -50,5 +50,19 @@ def key_count(shardID):
     ans = {"message":"Key count of shard ID retrieved successfully","shard-id-key-count":count}
     return make_response(jsonify(ans), 200)
 
-
-
+@shard_api.route("/key-value-store-shard/shard-id-members/<shardID>", methods = ['GET'])
+def shard_members(shardID):
+    if request.method == 'GET':
+        response = {}
+        if int(shardID) >= vars.shard_count or int(shardID) < 0:
+            response["Message"] = "Invalid shardID"
+            return make_response(response, 400)
+        else:
+            response["Message"] = "Members of the shard ID retrieved successfully"
+            response["shard-id-members"] = vars.shard_list[int(shardID)]
+            return make_response(response, 200)
+                 
+    else:
+        response = {}
+        response['message'] = "Invalid Method"
+        return make_response(response, 400)
