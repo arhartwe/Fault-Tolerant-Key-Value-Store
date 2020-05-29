@@ -6,6 +6,7 @@ import sys
 
 headers = {'Content-Type': 'application/json'}  
 
+# TODO: change view_list to local shard list
 def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
     # Skip if request is from another replica
     if request_address not in view_list:
@@ -50,7 +51,7 @@ def kvs_put(key, req, key_store):
             key_store[key] = val 
             resp['message'] = "Added successfully"
             status = 201
-        
+        resp['shard-id'] = vars.shard_id 
         return resp, status
 
 def kvs_delete(key, key_store):

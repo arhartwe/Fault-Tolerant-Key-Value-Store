@@ -5,6 +5,7 @@ from kvs import *
 from view import *
 import vars
 import os, sys, time, requests
+import hashlib
 headers = {'Content-Type': 'application/json'}    
 
 
@@ -16,9 +17,10 @@ def get_kvs():
 
 @server_api.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
 def main_inst(key):
-
+    key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
     if request.method == 'PUT' or request.method == 'DELETE':
         
+
         # Initialize incoming data
         data = request.get_json()
         meta_data = data['causal-metadata']
@@ -26,7 +28,26 @@ def main_inst(key):
         put_req = request.method == 'PUT'
         resp = {}
         status = 500
+        key_shard_id = int(key_hash, 16) % vars.shard_count
 
+
+        if key_shard_id != vars.shard_id:
+            if put_req:
+                new_shard_list = vars.shard_list[key_shard_id]
+                # Broadcast to node in correct shard the key
+                for node in new_shard_list:
+                    url = "http://" + node + "/key-value-store/" + key
+                    try:
+                        response = requests.put(url, data=data, headers=headers)
+                        print(response, file=sys.stderr)
+                        return ""
+                    except:
+                        pass
+            else:
+                pass
+                # delete
+        else:
+            pass # Go ahead and continue as normal 
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
         if type(meta_data) is not str and vars.socket_address not in meta_data.keys():            
             # Add this replica back to the metadata and update our vector clock
