@@ -69,8 +69,7 @@ def shard_members(shardID):
 
 @shard_api.route("/key-value-store-shard/add-member/<shardID>", methods = ['PUT'])
 def add_shard_member(shardID):
-    
-    return make_response(200)
+    # NOTE: To add a new node to the store, we start the corresponding Docker container WITHOUT the SHARD_COUNT environment variable
     
 
 
