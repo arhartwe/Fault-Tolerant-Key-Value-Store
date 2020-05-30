@@ -1,10 +1,12 @@
 from flask import json, jsonify, make_response, request
 from view import delete_replica_view
+import vars
 import requests 
 import sys
 
 headers = {'Content-Type': 'application/json'}  
 
+# TODO: change view_list to local shard list
 def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
     # Skip if request is from another replica
     if request_address not in view_list:
@@ -25,7 +27,7 @@ def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
                     next_replica = view_list.index(replica) + 1
                     # Keep broadcasting to rest of nodes
                     broadcast_kvs(view_list[next_replica:], socket_address, local_clock, key, request_address)
-                    delete_replica_view(socket_address, replica)
+                    # delete_replica_view(socket_address, replica)
 def kvs_put(key, req, key_store):
     response = req.get_json()
     if 'value' not in response:
@@ -49,7 +51,7 @@ def kvs_put(key, req, key_store):
             key_store[key] = val 
             resp['message'] = "Added successfully"
             status = 201
-        
+        resp['shard-id'] = vars.shard_id 
         return resp, status
 
 def kvs_delete(key, key_store):
@@ -61,3 +63,15 @@ def kvs_delete(key, key_store):
         msg = {"doesExist": False, "error": "Key does not exist",
                 "message": "Error in DELETE"}
         return msg, 404
+
+def kvs_startup():
+    try:
+        for each in vars.local_shard:
+            if vars.socket_address != each:
+                update_url = 'http://' + each + '/key-value-store-view'
+                requests.put(update_url, json={'socket-address': vars.socket_address}, headers=headers)
+                resp = requests.get("http://" + each + "/get-kvs",headers=headers)
+                vars.key_store = (resp.json())["kvs"]
+    except Exception as e:
+        # print(e, file=sys.stderr)  
+        pass

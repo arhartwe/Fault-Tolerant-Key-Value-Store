@@ -1,116 +1,115 @@
-from flask import Flask, json, jsonify, make_response, request
+from flask import Flask, json, jsonify, make_response, request, Blueprint
 from collections import Counter
 from clock import *
 from kvs import *
 from view import *
-
+import vars
 import os, sys, time, requests
-
-app = Flask(__name__)
-
-key_store = {"init": 0}
-local_clock = Counter()
-socket_address = os.environ.get('SOCKET_ADDRESS')
-socket_ip = socket_ip = socket_address.split(':')[0]
-
-view = os.environ.get('VIEW')
-view_list = view.split(',')
-view_socket_address = []
-for each in view_list:
-    view_socket_address.append(each.split(':')[0])
-    local_clock[each] = 0
-
+import hashlib
 headers = {'Content-Type': 'application/json'}    
-queue = []
 
-@app.route('/get-kvs', methods=['GET'])
+
+server_api = Blueprint('server_api', __name__)
+
+@server_api.route('/get-kvs', methods=['GET'])
 def get_kvs():
-    return jsonify({"kvs": key_store})
+    return jsonify({"kvs": vars.key_store})
 
-@app.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
+@server_api.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
 def main_inst(key):
-
+    print(vars.key_store, file=sys.stderr)
+    key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
     if request.method == 'PUT' or request.method == 'DELETE':
+        
+
+        # Initialize incoming data
         data = request.get_json()
         meta_data = data['causal-metadata']
         sender_socket = request.remote_addr + ":8085"
         put_req = request.method == 'PUT'
-        queue_success = False
         resp = {}
         status = 500
-        global local_clock
-        global key_store
+        key_shard_id = int(key_hash, 16) % vars.shard_count
 
-        if type(meta_data) is not str and socket_address not in meta_data.keys():
-            url = "http://" + view_list[0] + "/get-kvs"
-            try:
-                response = requests.get(url, headers=headers)
-                key_store = (response.json())["kvs"]
-            except (requests.exceptions.ConnectionError):
-                pass
-            meta_data[socket_address] = local_clock[socket_address]
-            local_clock = meta_data
-            for replica in view_list:
-                if replica != socket_address:
+
+        if key_shard_id != vars.shard_id:
+            if put_req:
+                new_shard_list = vars.shard_list[key_shard_id]
+                # Broadcast to node in correct shard the key
+                for node in new_shard_list:
+                    url = "http://" + node + "/key-value-store/" + key
                     try:
-                        url = "http://" + replica + "/key-value-store-view"
-                        requests.put(url, json={'socket-address': socket_address}, headers=headers)
-                    except Exception as e:
-                        print(e, file=sys.stderr)
-                    
+                        response = requests.put(url, data=data, headers=headers)
+                        return make_response(response)
+                    except:
+                        pass
+            else:
+                pass
+                # delete
+        else:
+            pass # Go ahead and continue as normal 
 
-        if compare_clocks(view_list, meta_data, local_clock, sender_socket):
+        # Check if metadata holds a vector clock, and replica socket is not in the metadata.
+        if type(meta_data) is not str and vars.socket_address not in meta_data.keys():            
+            # Add this replica back to the metadata and update our vector clock
+            meta_data[vars.socket_address] = vars.local_clock[vars.socket_address]
+            vars.local_clock = meta_data
+            kvs_startup() # Get a new kvs and tell other replicas to add this replica to the view
+            
+        if compare_clocks(vars.view_list, meta_data, vars.local_clock, sender_socket):
             
             if put_req:
-                resp, status = kvs_put(key, request, key_store)
+                resp, status = kvs_put(key, request, vars.key_store)
             else:
-                resp, status = kvs_delete(key, key_store)
-
-            if sender_socket not in view_list:
-                local_clock[socket_address] += 1
-                broadcast_kvs(view_list, socket_address, local_clock, key, sender_socket) # broadcast with my local clock
-            else:
-                local_clock[sender_socket] += 1
+                resp, status = kvs_delete(key, vars.key_store)
             
+            # If the message is from the client - Increment our local clock and broadcast to other replicas. 
+            if sender_socket not in vars.view_list:
+                vars.local_clock[vars.socket_address] += 1
+                broadcast_kvs(vars.local_shard, vars.socket_address, vars.local_clock, key, sender_socket) # broadcast with my local clock
+            else: # Message is from another replica and we just increment the sender address.
+                vars.local_clock[sender_socket] += 1
+        
+        # Go through the vars.queue and deliver any message that fulfils requirements.  
         else:
-            for clock, req in queue:
+            req = request
+            vars.queue.append((meta_data, request))
+            for clock, req in vars.queue:
                 request_sender_socket = req.remote_addr + ":8085"
-                if compare_clocks(view_list, clock, local_clock, request_sender_socket):
-                    if put_req:
-                        resp, status = kvs_put(key, req, key_store)
-                    else:
-                        resp, status = kvs_delete(key, key_store)
-
-                    queue.remove((clock, req))
-                    if request_sender_socket not in view_list:
-                        local_clock[socket_address] += 1
-                        broadcast_kvs(view_list, socket_address, local_clock, key, sender_socket) # broadcast with my local clock
-                    queue_success = True
-
-            if not queue_success:
-                queue.append((meta_data, request))
                 
-        resp["causal-metadata"] = local_clock
+                if compare_clocks(vars.view_list, clock, vars.local_clock, request_sender_socket):
+                    if put_req:
+                        resp, status = kvs_put(key, req, vars.key_store)
+                    else:
+                        resp, status = kvs_delete(key, vars.key_store)
+                    
+                    vars.queue.remove((clock, req))
+                    if request_sender_socket not in vars.view_list:
+                        vars.local_clock[vars.socket_address] += 1
+                        broadcast_kvs(vars.view_list, vars.socket_address, vars.local_clock, key, sender_socket) # broadcast with my local clock
+
+                
+        resp["causal-metadata"] = vars.local_clock
         return make_response(resp, status)
 
     elif request.method == 'GET':
-        if key in key_store:
-            value = key_store[key]
-            ans = {"message":"Retrieved successfully", "causal-metadata": local_clock, "value": value}
+        if key in vars.key_store:
+            value = vars.key_store[key]
+            ans = {"message":"Retrieved successfully", "causal-metadata": vars.local_clock, "value": value}
             return make_response(jsonify(ans), 200)
         else:
             ans = {"doesExist": False, "error": "Key does not exist",
-                   "message": "Error in GET", "causal-metadata": local_clock}
+                   "message": "Error in GET", "causal-metadata": vars.local_clock}
             return make_response(jsonify(ans), 404)
 
     else:
         return "Fail"
 
-@app.route('/key-value-store-view', methods=['PUT', 'GET', 'DELETE'])
+@server_api.route('/key-value-store-view', methods=['PUT', 'GET', 'DELETE'])
 def replica():
     if request.method == 'GET':
-        resp = {"message": "View retrieved successfully",
-                "view": ','.join(view_list)}
+        resp = {"message": "view retrieved successfully",
+                "view": ','.join(vars.view_list)}
         status = 200
         return make_response(jsonify(resp), status)
 
@@ -119,27 +118,27 @@ def replica():
         new_socket = data['socket-address']
 
         # if current socket is new socket, update KVS
-        if new_socket == socket_address:
+        if new_socket == vars.socket_address:
             try:
-                key_store = data['dictionary']
+                vars.key_store = data['dictionary']
             except:
                 pass
         
-        if new_socket not in view_list:
+        if new_socket not in vars.view_list:
 
-            view_list.append(new_socket)
-            os.environ['VIEW'] = ','.join(view_list)
+            vars.view_list.append(new_socket)
+            os.environ['VIEW'] = ','.join(vars.view_list)
 
-            broadcast_view(view_list)
+            broadcast_view(vars.view_list)
 
             try:
                 update_url = 'http://' + new_socket + '/key-value-store-view'
-                requests.put(update_url, data={'dictionary':key_store, 'socket-address':new_socket}, headers=headers)
+                requests.put(update_url, data={'dictionary':vars.key_store, 'socket-address':new_socket}, headers=headers)
             except:
                 pass
     
             succ_message = {
-                "message": "Replica added successfully to the view"}
+                "message": "Replica added successfully to the vars.view"}
             return make_response(jsonify(succ_message), 201)
 
         else:
@@ -151,18 +150,17 @@ def replica():
         data = request.get_json()
         del_socket = data['socket-address']
 
-
-        if del_socket in view_list:
+        if del_socket in vars.view_list:
             try:
-                view_list.remove(del_socket)
-                os.environ['VIEW'] = ','.join(view_list)
-                del local_clock[del_socket]
+                vars.view_list.remove(del_socket)
+                os.environ['VIEW'] = ','.join(vars.view_list)
+                del vars.local_clock[del_socket]
             except:
                 error_message = {
                     "error": "Socket address does not exist in the view", "message": "Error in DELETE"}
                 return make_response(jsonify(error_message), 404)
 
-            broadcast_view(view_list)
+            broadcast_view(vars.view_list)
                             
             try:
                 url = 'http://' + del_socket + '/key-value-store-view'
@@ -178,22 +176,6 @@ def replica():
 
         else:
             error_message = {
-                "error": "Socket address does not exist in the view", "message": "Error in DELETE"}
+                "error": "Socket address does not exist in the vars.view", "message": "Error in DELETE"}
             return make_response(jsonify(error_message), 404)
-
-def main():
-    try:
-        for each in view_list:
-            if socket_address != each:
-                update_url = 'http://' + each + '/key-value-store-view'
-                requests.put(update_url, json={'socket-address': socket_address}, headers=headers)
-                resp = requests.get("http://" + each + "/get-kvs",headers=headers)
-                global key_store
-                key_store = (resp.json())["kvs"]
-    except:
-        pass
-    app.run(debug=True, host='0.0.0.0', port=8085)
-
-if __name__ == '__main__':
-    main()
     
