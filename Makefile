@@ -68,6 +68,15 @@ get2:
 get3:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store/x
 
+get4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store/x
+
+get5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store/x
+
+get6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store/x
+
 view1:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-view
 
@@ -117,7 +126,7 @@ shardidmembers1:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/0
 
 shardidmembers2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/1
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/shard-id-members/1
 
 
 kill:

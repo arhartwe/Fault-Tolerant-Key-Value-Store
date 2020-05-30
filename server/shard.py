@@ -66,3 +66,11 @@ def shard_members(shardID):
         response = {}
         response['message'] = "Invalid Method"
         return make_response(response, 400)
+
+@shard_api.route("/key-value-store-shard/add-member/<shardID>", methods = ['PUT'])
+def add_shard_member(shardID):
+    
+    return make_response(200)
+    
+
+
