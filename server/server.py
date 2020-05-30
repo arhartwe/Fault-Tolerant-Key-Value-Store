@@ -17,6 +17,7 @@ def get_kvs():
 
 @server_api.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
 def main_inst(key):
+    print(vars.key_store, file=sys.stderr)
     key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
     if request.method == 'PUT' or request.method == 'DELETE':
         
@@ -39,7 +40,6 @@ def main_inst(key):
                     url = "http://" + node + "/key-value-store/" + key
                     try:
                         response = requests.put(url, data=data, headers=headers)
-                        print(response.status_code, file=sys.stderr)
                         return make_response(response)
                     except:
                         pass

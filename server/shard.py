@@ -46,7 +46,7 @@ def key_count(shardID):
     node_keys = (resp.json())["kvs"]
 
     # Every node in a shard should have same # of items in kvs, so kvs * nodes in shard gives total key count
-    count = (len(node_keys) * len(node_list)) - len(node_list) # len(node_list) because we initialize kvs with 1 key.
+    count = len(node_keys) - 1
     ans = {"message":"Key count of shard ID retrieved successfully","shard-id-key-count":count}
     return make_response(jsonify(ans), 200)
 
