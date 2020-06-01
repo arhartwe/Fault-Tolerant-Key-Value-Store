@@ -16,8 +16,6 @@ key_store = {"init": 0}
 local_clock = Counter()
 view_list = view.split(',')
 queue = []
-for each in view_list:
-    local_clock[each] = 0
 
 # Shard values and objects
 replication = len(view_list) // shard_count
@@ -31,6 +29,9 @@ for shard in shard_list:
         shard_id = shard_list.index(shard)
         local_shard = shard
         string = "value"
+
+for each in shard_list[shard_id]:
+    local_clock[each] = 0
 
 # shard_list = [[0,1,2], [4,5,6]]
 # shard_id_list = [0,1]

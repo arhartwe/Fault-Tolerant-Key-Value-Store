@@ -73,9 +73,9 @@ def update():
 
     return make_response("", 200)
 
-@shard_api.route("/key-value-store-shard/add-member-helper", methods = ['PUT'])
+@shard_api.route("/key-value-store-shard/add-causal-member", methods = ['PUT'])
 def add_member_helper():
-    dataJson = request.json()
+    dataJson = request.get_json()
     new_replica = dataJson["socket-address"]
 
     vars.local_clock[new_replica] = 0
@@ -83,9 +83,7 @@ def add_member_helper():
 
 @shard_api.route("/key-value-store-shard/get-shard-list", methods = ['GET'])
 def get_shard_list():
-    data = {}
-    data["shard-list"] = vars.shard_list
-    return make_response(data, 200)
+    return jsonify({"shard-list":vars.shard_list})
 
 @shard_api.route("/key-value-store-shard/get-shard-count", methods = ['GET'])
 def get_shard_count():
@@ -102,12 +100,12 @@ def add_shard_member(shardID):
         # Grab the KVS from a replica in the correct shard, as well as the causal-metadata
 
     data = request.get_json()
-    shardID = int(shardID)
+    shardID = int(shardID) - 1
     new_replica = data["socket-address"]
     #1 Update shard count, shardID of new node
 
     url = "http://" + new_replica + "/key-value-store-shard/update-member"
-    resp = {"shard-count": vars.shard_count, "shardID": shardID - 1}
+    resp = {"shard-count": vars.shard_count, "shardID": shardID}
     requests.put(url, headers = headers, json=resp)
 
     #2 Broadcast the socket-address of the new node to everyone's view list and shard list
@@ -115,35 +113,20 @@ def add_shard_member(shardID):
         if replica != new_replica:
             url = "http://" + replica + "/key-value-store/add-node"
             try:
-                test = {'socket-address':new_replica, 'shardID': shardID - 1}
+                test = {'socket-address':new_replica, 'shardID': shardID}
                 requests.put(url, json=test, headers=headers)
             except:
                 pass
 
-    # #2.a Get the shard list from someone
-    # shardList = []
-    # for each in vars.view_list:
-    #     if vars.socket_address != each:
-    #         url = "http://" + each + "/key-value-store-shard/get-shard-list"
-    #         try:
-    #             resp = requests.get(url, headers=headers,timeout=5)
-    #             if resp.status_code == 200:
-    #                 respJson = resp.json()
-    #                 shardList = respJson["shard-list"]
-    #         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-    #             pass
-    # if shardList == []:
-    #     print ("All nodes in view unreachable", file = sys.stderr)
-    #     exit(1)
-
-    # #3 Add the node to causal metadata of correct shard
-    # for node in shardList[shardID-1]:
-    #     if node != new_replica:
-    #         url = "http://" + node + "/key-value-store-shard/add-member-helper"
-    #         try:
-    #             requests.put(url, data=data, headers=headers, timeout=5)
-    #         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-    #             pass
+    #3 Add the node to causal metadata of correct shard
+    for node in vars.shard_list[shardID]:
+        if node != new_replica:
+            url = "http://" + node + "/key-value-store-shard/add-causal-member"
+            data = {'socket-address':new_replica}
+            try:
+                requests.put(url, json=data, headers=headers)
+            except:
+                pass
     
     # #4 Update the new replica with the rest of the information from the correct shard
     # if vars.shard_id == shardID:
@@ -162,6 +145,10 @@ def add_shard_member(shardID):
     #     url = "http://" + new_replica + "/key-value-store/update-self"
     #     requests.put(url, headers = headers, data=data, timeout = 5)
 
-    msg = ""
-    return make_response(msg,200)
+    # msg = ""
+    # return make_response(msg,200)
     
+
+    # print("key-value-store\n\n", file = sys.stderr)
+    # print(new_replica, file=sys.stderr)
+    # print("\n\n", file = sys.stderr)

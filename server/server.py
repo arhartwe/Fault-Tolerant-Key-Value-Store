@@ -15,6 +15,10 @@ server_api = Blueprint('server_api', __name__)
 def get_kvs():
     return jsonify({"kvs": vars.key_store, "causal-metadata":vars.local_clock})
 
+@server_api.route('/get-local-clock', methods = ['GET'])
+def get_local_clock():
+    return jsonify({"Local Clock":vars.local_clock})
+
 # Updates the KVS, clock, shard-count, view 
 @server_api.route('/update-self', methods = ['PUT'])
 def receive_kvs():
