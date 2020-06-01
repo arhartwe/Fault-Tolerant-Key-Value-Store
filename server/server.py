@@ -43,11 +43,6 @@ def add_node():
     new_socket = dataJson["socket-address"]
     shardID = dataJson["shardID"]
 
-    print ("Add-node route", file = sys.stderr)
-    print (dataJson, file = sys.stderr)
-    print (shardID, file = sys.stderr)
-
-    print ("Shard_list" + str(vars.shard_list) ,file = sys.stderr)
     vars.view_list.append(new_socket)
     vars.shard_list[int(shardID)].append(new_socket)
 

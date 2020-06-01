@@ -64,19 +64,14 @@ def shard_members(shardID):
         response['message'] = "Invalid Method"
         return make_response(response, 400)
 
-@shard_api.route("/key-value-store-shard/update", methods = ['PUT'])
+@shard_api.route("/key-value-store-shard/update-member", methods = ['PUT'])
 def update():
     data = request.get_json()
     
     vars.shard_count = data["shard-count"]
     vars.shard_id = int(data["shardID"])
 
-    print ("Shard-count " + str(vars.shard_count) + " shardID " + str(vars.shard_id), file = sys.stderr)
-
-    resp = {}
-    resp["hello"] = "world"
-    return make_response(resp, 200)
-
+    return make_response("", 200)
 
 @shard_api.route("/key-value-store-shard/add-member-helper", methods = ['PUT'])
 def add_member_helper():
@@ -111,23 +106,19 @@ def add_shard_member(shardID):
     new_replica = data["socket-address"]
     #1 Update shard count, shardID of new node
 
-    # print ("Add-Member Shard-count " + str(vars.shard_count) + " shardID " + str(shardID-1), file = sys.stderr)
-    # url = "http://" + str(new_replica) + "/key-value-store-shard/update"
-    # print (url, file=sys.stderr)
-    # resp = {}
-    # resp["shard-count"] = vars.shard_count
-    # resp["shardID"] = shardID - 1 
-    # requests.put(url, headers = headers, data=resp)
+    url = "http://" + new_replica + "/key-value-store-shard/update-member"
+    resp = {"shard-count": vars.shard_count, "shardID": shardID - 1}
+    requests.put(url, headers = headers, json=resp)
 
     #2 Broadcast the socket-address of the new node to everyone's view list and shard list
     for replica in vars.view_list:
-        url = "http://" + replica + "/key-value-store/add-node"
-        try:
-            test = {'socket-address':new_replica, 'shardID': shardID - 1}
-            print(url, file = sys.stderr)
-            requests.put(url, data=test, headers=headers)
-        except:
-            pass
+        if replica != new_replica:
+            url = "http://" + replica + "/key-value-store/add-node"
+            try:
+                test = {'socket-address':new_replica, 'shardID': shardID - 1}
+                requests.put(url, json=test, headers=headers)
+            except:
+                pass
 
     # #2.a Get the shard list from someone
     # shardList = []
