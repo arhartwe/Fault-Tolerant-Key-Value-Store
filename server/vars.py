@@ -28,7 +28,6 @@ for shard in shard_list:
     if replica_id in shard:
         shard_id = shard_list.index(shard)
         local_shard = shard
-        string = "value"
 
 for each in shard_list[shard_id]:
     local_clock[each] = 0
