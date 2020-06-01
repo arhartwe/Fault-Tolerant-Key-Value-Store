@@ -53,11 +53,9 @@ def add_node():
 
 @server_api.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
 def main_inst(key):
-    print(vars.key_store, file=sys.stderr)
     key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
     if request.method == 'PUT' or request.method == 'DELETE':
-        
-
+    
         # Initialize incoming data
         data = request.get_json()
         meta_data = data['causal-metadata']
@@ -131,7 +129,6 @@ def main_inst(key):
 
     elif request.method == 'GET':
         # 1) find out which shard the key belongs to
-        key_hash = (hashlib.sha1(key.encode("utf-8")).hexdigest())
         key_hash_shard_id = int(key_hash, 16) % vars.shard_count
         # 2) Check if key belongs in your shard
         if key_hash_shard_id == vars.shard_id:
