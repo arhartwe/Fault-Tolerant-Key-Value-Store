@@ -63,25 +63,26 @@ def main_inst(key):
         meta_data = data['causal-metadata']
         sender_socket = request.remote_addr + ":8085"
         put_req = request.method == 'PUT'
+        del_req = request.method == 'DELETE'
         resp = {}
         status = 500
         key_shard_id = int(key_hash, 16) % vars.shard_count
 
 
         if key_shard_id != vars.shard_id:
-            if put_req:
-                new_shard_list = vars.shard_list[key_shard_id]
-                # Broadcast to node in correct shard the key
-                for node in new_shard_list:
-                    url = "http://" + node + "/key-value-store/" + key
-                    try:
+            new_shard_list = vars.shard_list[key_shard_id]
+            # Broadcast to node in correct shard the key
+            for node in new_shard_list:
+                url = "http://" + node + "/key-value-store/" + key
+                try:
+                    if put_req:
                         response = requests.put(url, data=data, headers=headers)
                         return make_response(response)
-                    except:
-                        pass
-            else:
-                pass
-                # delete
+                    elif del_req:
+                        response = requests.delete(url, data=data, headers=headers)
+                        return make_response(response)
+                except:
+                    pass
         else:
             pass # Go ahead and continue as normal 
 
