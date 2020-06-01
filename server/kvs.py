@@ -72,6 +72,7 @@ def kvs_startup():
                 requests.put(update_url, json={'socket-address': vars.socket_address}, headers=headers)
                 resp = requests.get("http://" + each + "/get-kvs",headers=headers)
                 vars.key_store = (resp.json())["kvs"]
-    except Exception as e:
+    except:
+    # except Exception as e:
         # print(e, file=sys.stderr)  
         pass

@@ -13,7 +13,45 @@ server_api = Blueprint('server_api', __name__)
 
 @server_api.route('/get-kvs', methods=['GET'])
 def get_kvs():
-    return jsonify({"kvs": vars.key_store})
+    return jsonify({"kvs": vars.key_store, "causal-metadata":vars.local_clock})
+
+# Updates the KVS, clock, shard-count, view 
+@server_api.route('/update-self', methods = ['PUT'])
+def receive_kvs():
+    data = request.get_json()
+
+    vars.key_store = data["key-store"]
+    vars.local_clock = data["causal-metadata"]
+
+    vars.view_list.remove(vars.socket_address)
+    vars.replication = len(vars.view_list) // vars.shard_count
+    vars.shard_list = [vars.view_list[i:i+vars.replication] for i in range(0, len(vars.view_list), vars.replication)]
+    vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
+    
+    vars.local_shard = [] 
+    for shard in vars.shard_list:
+        if vars.replica_id in shard:
+            vars.local_shard = shard
+            vars.string = "value"
+
+    return make_response(200)
+
+
+@server_api.route('/key-value-store/add-node', methods = ['PUT'])
+def add_node():
+    dataJson = request.get_json()
+    new_socket = dataJson["socket-address"]
+    shardID = dataJson["shardID"]
+
+    print ("Add-node route", file = sys.stderr)
+    print (dataJson, file = sys.stderr)
+    print (shardID, file = sys.stderr)
+
+    print ("Shard_list" + str(vars.shard_list) ,file = sys.stderr)
+    vars.view_list.append(new_socket)
+    vars.shard_list[int(shardID)].append(new_socket)
+
+    return make_response("", 200)
 
 @server_api.route('/key-value-store/<key>', methods=['PUT', 'GET', 'DELETE'])
 def main_inst(key):

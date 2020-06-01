@@ -7,7 +7,7 @@ view = os.environ.get('VIEW')
 socket_address = os.environ.get('SOCKET_ADDRESS')
 replica_id = socket_address
 headers = {'Content-Type': 'application/json'} 
-shard_count = 0
+shard_count = 1
 if os.environ.get('SHARD_COUNT') != None:
     shard_count = int(os.environ.get('SHARD_COUNT'))
 

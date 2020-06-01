@@ -304,3 +304,60 @@ shardmembers6:
 
 shardmembers7:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/shard-id-members/0
+
+###############################################################################
+################################## ADD MEMBER #################################
+###############################################################################
+
+addmember7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085"}' http://localhost:8082/key-value-store-shard/add-member/2
+
+###############################################################################
+############################### GET SHARD COUNT ###############################
+###############################################################################
+
+shardcount1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/get-shard-count
+
+shardcount2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-shard/get-shard-count
+
+shardcount3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-shard/get-shard-count
+
+shardcount4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/get-shard-count
+
+shardcount5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/get-shard-count
+
+shardcount6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/get-shard-count
+
+shardcount7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/get-shard-count
+
+###############################################################################
+################################### ADD NODE ##################################
+###############################################################################
+
+addnode1:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8082/key-value-store/add-node
+
+addnode2:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8083/key-value-store/add-node
+
+addnode3:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8084/key-value-store/add-node
+
+addnode4:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8086/key-value-store/add-node
+
+addnode5:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8087/key-value-store/add-node
+
+addnode6:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8088/key-value-store/add-node
+	
+addnode7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8089/key-value-store/add-node
