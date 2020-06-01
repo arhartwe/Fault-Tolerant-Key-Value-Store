@@ -14,7 +14,6 @@ headers = {'Content-Type': 'application/json'}
 
 def main():
     if vars.shard_count == 1:
-        # Start up is slightly different, need to add it to a shard first and then go through with the rest of the KVS startup
         app.run(debug=True, host='0.0.0.0', port=8085)
     else:
         kvs_startup()

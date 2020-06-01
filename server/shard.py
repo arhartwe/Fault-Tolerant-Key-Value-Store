@@ -91,19 +91,11 @@ def get_shard_count():
 
 @shard_api.route("/key-value-store-shard/add-member/<shardID>", methods = ['PUT'])
 def add_shard_member(shardID):
-    # NOTE: To add a new node to the store, we start the corresponding Docker container WITHOUT the SHARD_COUNT environment variable
-
-    # This function will do the following things:
-        # Update the shard count of the new node
-        # Add the socket-address of the new node to everyone's view list and shard list
-        # Add the socket-address of the new node to everyone's causal-metadata
-        # Grab the KVS from a replica in the correct shard, as well as the causal-metadata
-
     data = request.get_json()
     shardID = int(shardID) - 1
     new_replica = data["socket-address"]
+    
     #1 Update shard count, shardID of new node
-
     url = "http://" + new_replica + "/key-value-store-shard/update-member"
     resp = {"shard-count": vars.shard_count, "shardID": shardID}
     requests.put(url, headers = headers, json=resp)
@@ -155,8 +147,3 @@ def add_shard_member(shardID):
 
     msg = ""
     return make_response(msg,200)
-    
-
-    # print("key-value-store\n\n", file = sys.stderr)
-    # print(new_replica, file=sys.stderr)
-    # print("\n\n", file = sys.stderr)
