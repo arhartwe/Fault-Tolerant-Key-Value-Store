@@ -81,6 +81,56 @@ replica7:
         -e SOCKET_ADDRESS="10.10.0.8:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085,10.10.0.8:8085" $(IMG)
 
 ###############################################################################
+################################# CONNECTIONS #################################
+###############################################################################	
+
+connect1:
+	docker network connect mynet replica1
+
+connect2:
+	docker network connect mynet replica2
+
+connect3:
+	docker network connect mynet replica3
+
+connect4:
+	docker network connect mynet replica4
+
+connect5:
+	docker network connect mynet replica5
+
+connect6:
+	docker network connect mynet replica6
+
+connect7:
+	docker network connect mynet replica7
+
+###############################################################################
+################################ DISCONNECTIONS ###############################
+###############################################################################	
+
+disconnect1:
+	docker network disconnect mynet replica1
+
+disconnect2:
+	docker network disconnect mynet replica2
+
+disconnect3:
+	docker network disconnect mynet replica3
+
+disconnect4:
+	docker network disconnect mynet replica4
+
+disconnect5:
+	docker network disconnect mynet replica5
+
+disconnect6:
+	docker network disconnect mynet replica6
+
+disconnect7:
+	docker network disconnect mynet replica7
+
+###############################################################################
 ##################################### PUT #####################################
 ###############################################################################
 
@@ -206,56 +256,6 @@ view7:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-view
 
 ###############################################################################
-################################# CONNECTIONS #################################
-###############################################################################	
-
-connect1:
-	docker network connect mynet replica1
-
-connect2:
-	docker network connect mynet replica2
-
-connect3:
-	docker network connect mynet replica3
-
-connect4:
-	docker network connect mynet replica4
-
-connect5:
-	docker network connect mynet replica5
-
-connect6:
-	docker network connect mynet replica6
-
-connect7:
-	docker network connect mynet replica7
-
-###############################################################################
-################################ DISCONNECTIONS ###############################
-###############################################################################	
-
-disconnect1:
-	docker network disconnect mynet replica1
-
-disconnect2:
-	docker network disconnect mynet replica2
-
-disconnect3:
-	docker network disconnect mynet replica3
-
-disconnect4:
-	docker network disconnect mynet replica4
-
-disconnect5:
-	docker network disconnect mynet replica5
-
-disconnect6:
-	docker network disconnect mynet replica6
-
-disconnect7:
-	docker network disconnect mynet replica7
-
-###############################################################################
 ############################## GET LOCAL CLOCK ################################
 ###############################################################################
 
@@ -294,16 +294,16 @@ shardmembers3:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-shard/shard-id-members/0
 
 shardmembers4:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/shard-id-members/0
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/shard-id-members/1
 
 shardmembers5:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/shard-id-members/0
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/shard-id-members/1
 
 shardmembers6:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/shard-id-members/0
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/shard-id-members/1
 
 shardmembers7:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/shard-id-members/0
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/shard-id-members/1
 
 ###############################################################################
 ################################## ADD MEMBER #################################

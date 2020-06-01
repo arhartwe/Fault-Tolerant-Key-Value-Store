@@ -20,25 +20,44 @@ def get_local_clock():
     return jsonify({"Local Clock":vars.local_clock})
 
 # Updates the KVS, clock, shard-count, view 
-@server_api.route('/update-self', methods = ['PUT'])
+@server_api.route('/key-value-store/update-self', methods = ['PUT'])
 def receive_kvs():
     data = request.get_json()
 
     vars.key_store = data["key-store"]
     vars.local_clock = data["causal-metadata"]
 
+    # print("Update kvs and clock\n", file = sys.stderr)
+    # print(data["key-store"], file=sys.stderr)
+    # print("\n", file=sys.stderr)
+    # print(data["causal-metadata"], file=sys.stderr)
+    # print("\n\n", file = sys.stderr)
+
     vars.view_list.remove(vars.socket_address)
+
+    # print("View_list\n\n", file = sys.stderr)
+    # print(vars.view_list, file=sys.stderr)
+    # print("\n", file=sys.stderr)
+
     vars.replication = len(vars.view_list) // vars.shard_count
     vars.shard_list = [vars.view_list[i:i+vars.replication] for i in range(0, len(vars.view_list), vars.replication)]
+
+    # print("Shard_list\n\n", file = sys.stderr)
+    # print(vars.shard_list, file=sys.stderr)
+    # print("\n", file=sys.stderr)
+
     vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
     
-    vars.local_shard = [] 
-    for shard in vars.shard_list:
-        if vars.replica_id in shard:
-            vars.local_shard = shard
-            vars.string = "value"
+    vars.local_shard = vars.shard_list[vars.shard_id]
 
-    return make_response(200)
+    # print("Local Shard\n\n", file = sys.stderr)
+    # print(vars.local_shard, file=sys.stderr)
+    # print("\n", file=sys.stderr)
+
+    vars.view_list.append(vars.socket_address)
+    vars.local_shard.append(vars.socket_address)
+
+    return make_response("", 200)
 
 
 @server_api.route('/key-value-store/add-node', methods = ['PUT'])

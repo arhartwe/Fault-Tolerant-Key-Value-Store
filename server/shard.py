@@ -128,25 +128,33 @@ def add_shard_member(shardID):
             except:
                 pass
     
-    # #4 Update the new replica with the rest of the information from the correct shard
-    # if vars.shard_id == shardID:
-    #     url = "http://" + new_replica + "/key-value-store/update-self"
-    #     msg = {"key-store": vars.key_store, "causal-metadata":vars.local_clock}
-    #     requests.put(url, data=msg, headers=headers, timeout = 5)
-    # else:
-    #     url = "http://" + vars.shard_list[shardID-1][0] + "/get-kvs"
-    #     resp = requests.get(url, headers=headers, timeout=5)
-    #     respJson = resp.json()
+    #4 Update the new replica with the rest of the information from the correct shard
+    if vars.shard_id == shardID:
+        url = "http://" + new_replica + "/key-value-store/update-self"
+        msg = {"key-store": vars.key_store, "causal-metadata":vars.local_clock}
+        requests.put(url, json=msg, headers=headers, timeout = 5)
+    else:
+        data = {}
+        for each in vars.shard_list[shardID]:
+            if each != new_replica:
+                url = "http://" + each + "/get-kvs"
+                try:
+                    resp = requests.get(url, headers=headers, timeout=5)
+                    if resp.status_code == 200:
+                        respJson = resp.json()
+                        data = {"key-store":respJson['kvs'], "causal-metadata":respJson['causal-metadata']}
+                        break
+                except:
+                    pass
+        if not dict:
+            print("KVS retrieval fail", file = sys.stderr)
+            exit(1)
+        
+        url = "http://" + new_replica + "/key-value-store/update-self"
+        requests.put(url, headers = headers, json=data, timeout = 5)
 
-    #     data = {}
-    #     data["key-store"] = respJson['kvs']
-    #     data["causal-metadata"] = respJson['causal-metadata']
-
-    #     url = "http://" + new_replica + "/key-value-store/update-self"
-    #     requests.put(url, headers = headers, data=data, timeout = 5)
-
-    # msg = ""
-    # return make_response(msg,200)
+    msg = ""
+    return make_response(msg,200)
     
 
     # print("key-value-store\n\n", file = sys.stderr)
