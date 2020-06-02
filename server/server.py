@@ -160,17 +160,21 @@ def main_inst(key):
         else:
             # 3) Send a get request to the correct shard
             correctShard = vars.shard_list[key_hash_shard_id]
-            url = "http://" + str(correctShard[0]) + "/key-value-store/" + str(key)
+
+            url = "http://" + correctShard[0] + "/key-value-store/" + key
             resp = requests.get(url, headers = headers, timeout = 5)
-            print ("resp status code line 165 " + str(resp.status_code), file = sys.stderr)
             respJson = resp.json()
-            if resp.status_code == 200:
-                ans = {"message":"Retrieved successfully", "causal-metadata": respJson["causal-metadata"], "value":respJson["value"]}
-                return make_response(ans, 200)
-            else:
-                ans = {"doesExist": False, "error": "Key does not exist",
-                    "message": "Error in GET", "causal-metadata": respJson["causal-metadata"]}
-                return make_response(ans, 405)
+            value  = respJson["value"]
+            meta_data = respJson["causal-metadata"]
+            ans = {"message":"Retrieved successfully", "causal-metadata": meta_data, "value":value}
+            return make_response(ans, 200)
+            # if resp.status_code == 200:
+            #     ans = {"message":"Retrieved successfully", "causal-metadata": respJson["causal-metadata"], "value":respJson["value"]}
+            #     return make_response(jsonify(ans), 200)
+            # else:
+            #     ans = {"doesExist": False, "error": "Key does not exist",
+            #         "message": "Error in GET", "causal-metadata": respJson["causal-metadata"]}
+            #     return make_response(jsonify(ans), 405)
     else:
         return "Fail"
 

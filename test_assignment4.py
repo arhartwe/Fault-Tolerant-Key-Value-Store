@@ -271,7 +271,7 @@ class TestHW3(unittest.TestCase):
             print("nodeIndex: " + str(nodeIndex) + "\n\n")
             print("Request: http://localhost:" + str(nodeHostPortList[nodeIndex] + "/key-value-store/key" + str(counter) + "\n\n"))
             #get the value of the key
-            response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), timeout=TIMEOUT)
+            response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), headers = {'Content-Type': 'application/json'}, timeout=TIMEOUT)
             
             responseInJson = response.json()
             print("responseInJson line 271\n")
