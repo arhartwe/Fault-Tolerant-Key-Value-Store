@@ -135,13 +135,13 @@ disconnect7:
 ###############################################################################
 
 put1:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8082/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value0", "causal-metadata": ""}' http://localhost:8082/key-value-store/key0
 
 put2:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8083/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value1", "causal-metadata": ""}' http://localhost:8083/key-value-store/key1
 
 put3:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8084/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value2", "causal-metadata": ""}' http://localhost:8084/key-value-store/key2
 
 put4:
 	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8086/key-value-store/x
@@ -160,28 +160,28 @@ put7:
 ###############################################################################
 
 get1:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store/key0
 
 get2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store/key0
 
 get3:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store/key1
 
 get4:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store/key1
 
 get5:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store/key1
 
 get6:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store/x
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store/key1
 
 get7:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store/x
 
 ###############################################################################
-################################## UPDATE ###################################
+################################## UPDATE #####################################
 ###############################################################################
 
 update1: 
@@ -386,3 +386,25 @@ addnode6:
 	
 addnode7:
 	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8089/key-value-store/add-node
+
+###############################################################################
+##################################### KVS #####################################
+###############################################################################
+
+kvs1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/get-kvs
+
+kvs2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/get-kvs
+
+kvs3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/get-kvs
+
+kvs4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/get-kvs
+
+kvs5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/get-kvs
+
+kvs6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/get-kvs

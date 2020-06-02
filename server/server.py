@@ -66,38 +66,54 @@ def main_inst(key):
         status = 500
         key_shard_id = int(key_hash, 16) % vars.shard_count
 
+        # print ("Causal-metadata " + str(meta_data) + "\n", file = sys.stderr)
+        # print ("Value " + str(data['value']) + "\n", file = sys.stderr)
 
         if key_shard_id != vars.shard_id:
             new_shard_list = vars.shard_list[key_shard_id]
             # Broadcast to node in correct shard the key
+            response = ""
+            resp_status = []
             for node in new_shard_list:
                 url = "http://" + node + "/key-value-store/" + key
                 try:
                     if put_req:
-                        response = requests.put(url, data=data, headers=headers)
-                        return make_response(response)
+                        data = {"causal-metadata":meta_data, "value":data['value']}
+                        response = requests.put(url, json = data, headers=headers)
+                        # resp_status.append(response.status_code)
+                        # print ("URL " + str(url) + "\n", file = sys.stderr)
+                        if response.status_code == 400 or response.status_code == 501:
+                            print("Error on line 84, server.py", file = sys.stderr)
+                            exit(1)
                     elif del_req:
                         response = requests.delete(url, data=data, headers=headers)
-                        return make_response(response)
                 except:
                     pass
+            response = response.json()
+            test = {"causal-metadata":response["causal-metadata"], "shard-id":key_shard_id}
+            if resp_status.count(201) == len(resp_status):
+                return make_response(test, 201)
+            else:
+                return make_response(test, 200) 
         else:
             pass # Go ahead and continue as normal 
 
+        # print ("Key Shard ID equals vars.shard_id\n", file = sys.stderr)
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
-        if type(meta_data) is not str and vars.socket_address not in meta_data.keys():            
+        if type(meta_data) is not str and vars.socket_address not in meta_data.keys():           
+            print("\nNot supposed to be in here\n" , file=sys.stderr )
             # Add this replica back to the metadata and update our vector clock
             meta_data[vars.socket_address] = vars.local_clock[vars.socket_address]
             vars.local_clock = meta_data
             kvs_startup() # Get a new kvs and tell other replicas to add this replica to the view
             
+        # print ("Metadata does hold a vector clock\n", file = sys.stderr)
         if compare_clocks(vars.view_list, meta_data, vars.local_clock, sender_socket):
-            
             if put_req:
                 resp, status = kvs_put(key, request, vars.key_store)
             else:
                 resp, status = kvs_delete(key, vars.key_store)
-            
+            # print("\n\nResp " + str(resp) + "\n\nStatus" + str(status) + "\n\n", file=sys.stderr)
             # If the message is from the client - Increment our local clock and broadcast to other replicas. 
             if sender_socket not in vars.view_list:
                 vars.local_clock[vars.socket_address] += 1
@@ -107,6 +123,7 @@ def main_inst(key):
         
         # Go through the vars.queue and deliver any message that fulfils requirements.  
         else:
+            # print ("At Line 117\n", file = sys.stderr)
             req = request
             vars.queue.append((meta_data, request))
             for clock, req in vars.queue:
@@ -135,24 +152,25 @@ def main_inst(key):
             if key in vars.key_store:
                 value = vars.key_store[key]
                 ans = {"message":"Retrieved successfully", "causal-metadata": vars.local_clock, "value": value}
-                return make_response(jsonify(ans), 200)
+                return make_response(ans, 200)
             else:
                 ans = {"doesExist": False, "error": "Key does not exist",
                     "message": "Error in GET", "causal-metadata": vars.local_clock}
-                return make_response(jsonify(ans), 404)
+                return make_response(ans, 404)
         else:
             # 3) Send a get request to the correct shard
             correctShard = vars.shard_list[key_hash_shard_id]
             url = "http://" + str(correctShard[0]) + "/key-value-store/" + str(key)
             resp = requests.get(url, headers = headers, timeout = 5)
+            print ("resp status code line 165 " + str(resp.status_code), file = sys.stderr)
             respJson = resp.json()
             if resp.status_code == 200:
                 ans = {"message":"Retrieved successfully", "causal-metadata": respJson["causal-metadata"], "value":respJson["value"]}
-                return make_response(jsonify(ans), 200)
+                return make_response(ans, 200)
             else:
                 ans = {"doesExist": False, "error": "Key does not exist",
                     "message": "Error in GET", "causal-metadata": respJson["causal-metadata"]}
-                return make_response(jsonify(ans), 404)
+                return make_response(ans, 405)
     else:
         return "Fail"
 
