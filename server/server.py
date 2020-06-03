@@ -79,8 +79,8 @@ def main_inst(key):
                 try:
                     if put_req:
                         data = {"causal-metadata":meta_data, "value":data['value']}
+                        print("value: " + str(data['value']), file = sys.stderr)
                         response = requests.put(url, json = data, headers=headers)
-                        # resp_status.append(response.status_code)
                         # print ("URL " + str(url) + "\n", file = sys.stderr)
                         if response.status_code == 400 or response.status_code == 501:
                             print("Error on line 84, server.py", file = sys.stderr)
@@ -90,7 +90,7 @@ def main_inst(key):
                 except:
                     pass
             response = response.json()
-            test = {"causal-metadata":response["causal-metadata"], "shard-id":key_shard_id}
+            test = {"causal-metadata":response["causal-metadata"],"message":response["message"], "shard-id":key_shard_id}
             if resp_status.count(201) == len(resp_status):
                 return make_response(test, 201)
             else:
@@ -156,18 +156,22 @@ def main_inst(key):
             else:
                 ans = {"doesExist": False, "error": "Key does not exist",
                     "message": "Error in GET", "causal-metadata": vars.local_clock}
-                return make_response(ans, 404)
+                return make_response(ans, 412)
         else:
             # 3) Send a get request to the correct shard
             correctShard = vars.shard_list[key_hash_shard_id]
+            try:
+                url = "http://" + correctShard[0] + "/key-value-store/" + key
+                resp = requests.get(url, headers = headers, timeout = 5)
+                respJson = resp.json()
+                value  = respJson["value"]
+                meta_data = respJson["causal-metadata"]
+                ans = {"message":"Retrieved successfully", "causal-metadata": meta_data, "value":value}
+                return make_response(ans, 200)
+            except Exception as e:
+                ans = {"e": str(e), "status_code":resp.status_code}
+                return make_response(ans, 521)
 
-            url = "http://" + correctShard[0] + "/key-value-store/" + key
-            resp = requests.get(url, headers = headers, timeout = 5)
-            respJson = resp.json()
-            value  = respJson["value"]
-            meta_data = respJson["causal-metadata"]
-            ans = {"message":"Retrieved successfully", "causal-metadata": meta_data, "value":value}
-            return make_response(ans, 200)
             # if resp.status_code == 200:
             #     ans = {"message":"Retrieved successfully", "causal-metadata": respJson["causal-metadata"], "value":respJson["value"]}
             #     return make_response(jsonify(ans), 200)
