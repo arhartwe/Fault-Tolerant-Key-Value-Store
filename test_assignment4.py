@@ -12,6 +12,8 @@ import requests
 import time
 import os
 
+TIMEOUT=60
+
 ######################## initialize variables ################################################
 subnetName = "assignment4-net"
 subnetAddress = "10.10.0.0/16"
@@ -31,36 +33,35 @@ shardCount = 2
 def removeSubnet(subnetName):
     command = "docker network rm " + subnetName
     os.system(command)
-    time.sleep(2)
+    # time.sleep(2)
 
 def createSubnet(subnetAddress, subnetName):
     command  = "docker network create --subnet=" + subnetAddress + " " + subnetName
     os.system(command)
-    time.sleep(2)
+    # time.sleep(2)
 
 def buildDockerImage():
     command = "docker build -t assignment4-img ."
     os.system(command)
 
 def runInstance(hostPort, ipAddress, subnetName, instanceName):
-    command = "docker run -d -p " + hostPort + ":8085 --net=" + subnetName + " --ip=" + ipAddress + " --name=" + instanceName + " -e SOCKET_ADDRESS=" + ipAddress + ":8085" + " -e VIEW=" + view + " -e SHARD_COUNT=" + str(shardCount) + " assignment4-img"
-    print("Start: ", instanceName)
+    command = "docker run --rm -d -p " + hostPort + ":8085 --net=" + subnetName + " --ip=" + ipAddress + " --name=" + instanceName + " -e SOCKET_ADDRESS=" + ipAddress + ":8085" + " -e VIEW=" + view + " -e SHARD_COUNT=" + str(shardCount) + " assignment4-img"
     os.system(command)
-    time.sleep(20)
+    time.sleep(3)
 
 def runAdditionalInstance(hostPort, ipAddress, subnetName, instanceName, newView):
-    command = "docker run -d -p " + hostPort + ":8085 --net=" + subnetName + " --ip=" + ipAddress + " --name=" + instanceName + " -e SOCKET_ADDRESS=" + ipAddress + ":8085" + " -e VIEW=" + newView  + " assignment4-img"
-    print("AdditionalStart: ", instanceName)
+    command = "docker run --rm -d -p " + hostPort + ":8085 --net=" + subnetName + " --ip=" + ipAddress + " --name=" + instanceName + " -e SOCKET_ADDRESS=" + ipAddress + ":8085" + " -e VIEW=" + newView  + " assignment4-img"
     os.system(command)
-    time.sleep(20)
+    time.sleep(5)
 
 def stopAndRemoveInstance(instanceName):
-    stopCommand = "docker stop " + instanceName
-    removeCommand = "docker rm " + instanceName
-    print("Stop: ", instanceName)
-    os.system(stopCommand)
-    time.sleep(2)
-    os.system(removeCommand)
+    # stopCommand = "docker stop " + instanceName
+    # removeCommand = "docker rm " + instanceName
+    # os.system(stopCommand)
+    # time.sleep(2)
+    # os.system(removeCommand)
+    command = "docker kill " + str(instanceName)
+    os.system(command)
 
 def connectToNetwork(subnetName, instanceName):
     command = "docker network connect " + subnetName + " " + instanceName
@@ -130,26 +131,26 @@ class TestHW3(unittest.TestCase):
     ########################## Run tests #######################################################
 
     def test_a_get_shard_ids(self):
-        time.sleep(10)
+        # time.sleep(10)
 
         print("\n###################### Getting Shard IDs ######################\n")
 
         # get the shard IDs from node1
-        response = requests.get( 'http://localhost:8082/key-value-store-shard/shard-ids')
+        response = requests.get( 'http://localhost:8082/key-value-store-shard/shard-ids', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
         shardIdsFromNode1 = responseInJson['shard-ids']
         self.assertEqual(len(shardIdsFromNode1), shardCount)
 
         # get the shard IDs from node5
-        response = requests.get( 'http://localhost:8087/key-value-store-shard/shard-ids')
+        response = requests.get( 'http://localhost:8087/key-value-store-shard/shard-ids', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
         shardIdsFromNode5 = responseInJson['shard-ids']
         self.assertTrue(compareLists(shardIdsFromNode5, shardIdsFromNode1))
 
         # get the shard IDs from node6
-        response = requests.get( 'http://localhost:8088/key-value-store-shard/shard-ids')
+        response = requests.get( 'http://localhost:8088/key-value-store-shard/shard-ids', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
         shardIdsFromNode6 = responseInJson['shard-ids']
@@ -157,31 +158,31 @@ class TestHW3(unittest.TestCase):
 
         self.shardIdList += shardIdsFromNode1
 
-    # def test_b_shard_id_members(self):
+    def test_b_shard_id_members(self):
 
-    #     print("\n###################### Getting the Members of Shard IDs ######################\n")
+        print("\n###################### Getting the Members of Shard IDs ######################\n")
 
-    #     shard1 = str(self.shardIdList[0])
-    #     shard2 = str(self.shardIdList[1])
+        shard1 = str(self.shardIdList[0])
+        shard2 = str(self.shardIdList[1])
 
-    #     # get the members of shard1 from node2
-    #     response = requests.get( 'http://localhost:8083/key-value-store-shard/shard-id-members/' + shard1)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard1Members = responseInJson['shard-id-members']
-    #     self.assertGreater(len(shard1Members), 1)
+        # get the members of shard1 from node2
+        response = requests.get( 'http://localhost:8083/key-value-store-shard/shard-id-members/' + shard1, timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard1Members = responseInJson['shard-id-members']
+        self.assertGreater(len(shard1Members), 1)
 
-    #     # get the members of shard2 from node3
-    #     response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-members/' + shard2)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard2Members = responseInJson['shard-id-members']
-    #     self.assertGreater(len(shard2Members), 1)
+        # get the members of shard2 from node3
+        response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-members/' + shard2, timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard2Members = responseInJson['shard-id-members']
+        self.assertGreater(len(shard2Members), 1)
 
-    #     self.assertEqual(len(nodeSocketAddressList), len(shard1Members + shard2Members))
+        self.assertEqual(len(nodeSocketAddressList), len(shard1Members + shard2Members))
 
-    #     self.shardsMemberList += [shard1Members]
-    #     self.shardsMemberList += [shard2Members]
+        self.shardsMemberList += [shard1Members]
+        self.shardsMemberList += [shard2Members]
 
 
     def test_c_node_shard_id(self):
@@ -191,7 +192,7 @@ class TestHW3(unittest.TestCase):
         shard1 = self.shardIdList[0]
 
         # get the shard id of node1
-        response = requests.get( 'http://localhost:8082/key-value-store-shard/node-shard-id')
+        response = requests.get( 'http://localhost:8082/key-value-store-shard/node-shard-id', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
 
@@ -205,7 +206,7 @@ class TestHW3(unittest.TestCase):
             self.assertTrue(nodeSocketAddressList[0] in self.shardsMemberList[1])
 
         # get the shard id of node2
-        response = requests.get('http://localhost:8083/key-value-store-shard/node-shard-id')
+        response = requests.get('http://localhost:8083/key-value-store-shard/node-shard-id', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
 
@@ -220,7 +221,7 @@ class TestHW3(unittest.TestCase):
 
 
         # get the shard id of node6
-        response = requests.get('http://localhost:8088/key-value-store-shard/node-shard-id')
+        response = requests.get('http://localhost:8088/key-value-store-shard/node-shard-id', timeout=TIMEOUT)
         responseInJson = response.json()
         self.assertEqual(response.status_code, 200)
 
@@ -234,152 +235,147 @@ class TestHW3(unittest.TestCase):
             self.assertTrue(nodeSocketAddressList[5] in self.shardsMemberList[1])
 
 
-    # def test_d_put_key_value_operation(self):
+    def test_d_put_key_value_operation(self):
 
-    #     print("\n###################### Putting keys/values to the store ######################\n")
+        print("\n###################### Putting keys/values to the store ######################\nThis takes at least 10 minutes\n")
+        nextCausalMetadata = ""
 
-    #     nextCausalMetadata = ""
+        for counter in range(self.keyCount):
+            nodeIndex = counter % len(nodeIpList)
 
-    #     for counter in range(self.keyCount):
-    #         nodeIndex = counter % len(nodeIpList)
+            response = requests.put('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), json={'value': "value" + str(counter), "causal-metadata": nextCausalMetadata}, timeout=TIMEOUT)
+            responseInJson = response.json()
+            self.assertEqual(response.status_code, 201)
+            nextCausalMetadata = responseInJson["causal-metadata"]
 
-    #         # put a new key in the store
-    #         response = requests.put('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), json={'value': "value" + str(counter), "causal-metadata": nextCausalMetadata})
-    #         responseInJson = response.json()
-    #         self.assertEqual(response.status_code, 201)
-    #         nextCausalMetadata = responseInJson["causal-metadata"]
+            keyShardId = responseInJson["shard-id"]
 
-    #         keyShardId = responseInJson["shard-id"]
+            self.assertTrue(keyShardId in self.shardIdList)
 
-    #         self.assertTrue(keyShardId in self.shardIdList)
+    def test_e_get_key_value_operation(self):
 
-    #         time.sleep(1)
+        # time.sleep(10)
 
-    # def test_e_get_key_value_operation(self):
-
-    #     time.sleep(10)
-
-    #     print("\n###################### Getting keys/values from the store ######################\n")
+        print("\n###################### Getting keys/values from the store ######################\n")
 
 
-    #     for counter in range(self.keyCount):
+        for counter in range(self.keyCount):
 
-    #         nodeIndex = (counter + 1 ) % len(nodeIpList)
+            nodeIndex = (counter + 1 ) % len(nodeIpList)
+            response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), headers = {'Content-Type': 'application/json'},timeout=TIMEOUT)
+            responseInJson = response.json() 
 
-    #         # get the value of the key
-    #         response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter))
-    #         responseInJson = response.json()
-    #         self.assertEqual(response.status_code, 200)
-    #         value = responseInJson["value"]
-    #         self.assertEqual(value, "value" + str(counter))
+            self.assertEqual(response.status_code, 200)
+            value = responseInJson["value"]
+            self.assertEqual(value, "value" + str(counter))
 
-    # def test_f_shard_key_count(self):
+    def test_f_shard_key_count(self):
 
-    #     print("\n###################### Getting key count of each shard ######################\n")
+        print("\n###################### Getting key count of each shard ######################\n")
 
-    #     shard1 = str(self.shardIdList[0])
-    #     shard2 = str(self.shardIdList[1])
+        shard1 = str(self.shardIdList[0])
+        shard2 = str(self.shardIdList[1])
 
-    #     # get the shard1 key count from node5
-    #     response = requests.get( 'http://localhost:8087/key-value-store-shard/shard-id-key-count/' + shard1)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard1KeyCount = int(responseInJson['shard-id-key-count'])
+        # get the shard1 key count from node5
+        response = requests.get( 'http://localhost:8087/key-value-store-shard/shard-id-key-count/' + shard1, timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard1KeyCount = int(responseInJson['shard-id-key-count'])
 
-    #     # get the shard2 key count from node3
-    #     response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-key-count/' + shard2)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard2KeyCount = int(responseInJson['shard-id-key-count'])
+        # get the shard2 key count from node3
+        response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-key-count/' + shard2, timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard2KeyCount = int(responseInJson['shard-id-key-count'])
 
-    #     # sum of key counts in shards == total keys
-    #     self.assertEqual(self.keyCount, shard1KeyCount + shard2KeyCount)
+        # sum of key counts in shards == total keys
+        self.assertEqual(self.keyCount, shard1KeyCount + shard2KeyCount)
 
-    #     # check whether keys distributed almost uniformly
-    #     minKeyCount = int ((self.keyCount * 0.75) / shardCount)
-    #     maxKeyCount = int ((self.keyCount * 1.25) / shardCount)
+        # check whether keys distributed almost uniformly
+        minKeyCount = int ((self.keyCount * 0.75) / shardCount)
+        maxKeyCount = int ((self.keyCount * 1.25) / shardCount)
 
-    #     # minKeyCount < shard2-key-count < maxKeyCount
-    #     self.assertGreater(shard1KeyCount, minKeyCount)
-    #     self.assertLess(shard1KeyCount, maxKeyCount)
+        # minKeyCount < shard2-key-count < maxKeyCount
+        self.assertGreater(shard1KeyCount, minKeyCount)
+        self.assertLess(shard1KeyCount, maxKeyCount)
 
-    #     # minKeyCount < shard2-key-count < maxKeyCount
-    #     self.assertGreater(shard2KeyCount, minKeyCount)
-    #     self.assertLess(shard2KeyCount, maxKeyCount)
+        # minKeyCount < shard2-key-count < maxKeyCount
+        self.assertGreater(shard2KeyCount, minKeyCount)
+        self.assertLess(shard2KeyCount, maxKeyCount)
 
-    # def test_g_add_new_node(self):
+    def test_g_add_new_node(self):
 
-    #     shard2 = self.shardIdList[1]
+        shard2 = self.shardIdList[1]
 
 
-    #     print("\n###################### Adding a new node ######################\n")
-    #     node7Ip = "10.10.0.8"
-    #     node7HostPort = "8089"
-    #     node7SocketAddress = "10.10.0.8:8085"
-    #     newView =  view + "," + node7SocketAddress
+        print("\n###################### Adding a new node ######################\n")
+        node7Ip = "10.10.0.8"
+        node7HostPort = "8089"
+        node7SocketAddress = "10.10.0.8:8085"
+        newView =  view + "," + node7SocketAddress
 
-    #     runAdditionalInstance(node7HostPort, node7Ip, subnetName, "node7", newView)
+        runAdditionalInstance(node7HostPort, node7Ip, subnetName, "node7", newView)
 
-    #     time.sleep(10)
+        # time.sleep(10)
 
-    #     # get the new view from node1
-    #     response = requests.get( 'http://localhost:8082/key-value-store-view')
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertTrue(compareViews(responseInJson['view'], newView))
+        # get the new view from node1
+        response = requests.get( 'http://localhost:8082/key-value-store-view', timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(compareViews(responseInJson['view'], newView))
 
-    #     print("\n###################### Assigning the new node to the second shard ######################\n")
+        print("\n###################### Assigning the new node to the second shard ######################\n")
 
-    #     response = requests.put('http://localhost:8082/key-value-store-shard/add-member/' + str(shard2), json={'socket-address': node7SocketAddress})
-    #     self.assertEqual(response.status_code, 200)
+        response = requests.put('http://localhost:8082/key-value-store-shard/add-member/' + str(shard2), json={'socket-address': node7SocketAddress}, timeout=TIMEOUT)
+        self.assertEqual(response.status_code, 200)
 
-    #     time.sleep(5)
+        # time.sleep(5)
 
-    #     # get the shard id of node7
-    #     response = requests.get('http://localhost:8089/key-value-store-shard/node-shard-id')
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     node7ShardId = responseInJson['shard-id']
-    #     self.assertEqual(node7ShardId, shard2)
+        # get the shard id of node7
+        response = requests.get('http://localhost:8089/key-value-store-shard/node-shard-id', timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        node7ShardId = responseInJson['shard-id']
+        self.assertEqual(node7ShardId, shard2)
 
-    #     # get the members of shard2 from node4
-    #     response = requests.get( 'http://localhost:8086/key-value-store-shard/shard-id-members/' + shard2)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertTrue(node7SocketAddress in responseInJson['shard-id-members'])
+        # get the members of shard2 from node4
+        response = requests.get( 'http://localhost:8086/key-value-store-shard/shard-id-members/' + str(shard2), timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(node7SocketAddress in responseInJson['shard-id-members'])
 
-    #     # get shard2 key count from node7
-    #     response = requests.get( 'http://localhost:8089/key-value-store-shard/shard-id-key-count/' + shard2)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard2KeyCountFromNode7 = int(responseInJson['shard-id-key-count'])
+        # get shard2 key count from node7
+        response = requests.get( 'http://localhost:8089/key-value-store-shard/shard-id-key-count/' + str(shard2), timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard2KeyCountFromNode7 = int(responseInJson['shard-id-key-count'])
 
-    #     # get shard2 key count from node3
-    #     response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-key-count/' + shard2)
-    #     responseInJson = response.json()
-    #     self.assertEqual(response.status_code, 200)
-    #     shard2KeyCountFromNode3 = int(responseInJson['shard-id-key-count'])
+        # get shard2 key count from node3
+        response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-key-count/' + str(shard2), timeout=TIMEOUT)
+        responseInJson = response.json()
+        self.assertEqual(response.status_code, 200)
+        shard2KeyCountFromNode3 = int(responseInJson['shard-id-key-count'])
 
-    #     self.assertEqual(shard2KeyCountFromNode7, shard2KeyCountFromNode3)
+        self.assertEqual(shard2KeyCountFromNode7, shard2KeyCountFromNode3)
 
     # def test_h_impossible_reshard(self):
 
     #     print("\n###################### Doing Impossible Resharding ######################\n")
 
-    #     response = requests.put('http://localhost:8083/key-value-store-shard/reshard', json={'shard-count': 10})
+    #     response = requests.put('http://localhost:8083/key-value-store-shard/reshard', json={'shard-count': 10}, timeout=TIMEOUT)
     #     self.assertEqual(response.status_code, 400)
 
     # def test_i_possible_reshard(self):
 
     #     print("\n###################### Doing Resharding ######################\n")
 
-    #     response = requests.put('http://localhost:8082/key-value-store-shard/reshard', json={'shard-count': 3})
+    #     response = requests.put('http://localhost:8082/key-value-store-shard/reshard', json={'shard-count': 3}, timeout=TIMEOUT)
     #     self.assertEqual(response.status_code, 200)
 
     #     time.sleep(20)
 
     #     # get the new shard IDs from node1
-    #     response = requests.get( 'http://localhost:8082/key-value-store-shard/shard-ids')
+    #     response = requests.get( 'http://localhost:8082/key-value-store-shard/shard-ids', timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     newShardIds = responseInJson['shard-ids']
@@ -392,21 +388,21 @@ class TestHW3(unittest.TestCase):
 
 
     #     # get the members of shard1 from node2
-    #     response = requests.get( 'http://localhost:8083/key-value-store-shard/shard-id-members/' + str(shard1))
+    #     response = requests.get( 'http://localhost:8083/key-value-store-shard/shard-id-members/' + str(shard1), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard1Members = responseInJson['shard-id-members']
     #     self.assertGreater(len(shard1Members), 1)
 
     #     # get the members of shard2 from node3
-    #     response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-members/' + str(shard2))
+    #     response = requests.get( 'http://localhost:8084/key-value-store-shard/shard-id-members/' + str(shard2), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard2Members = responseInJson['shard-id-members']
     #     self.assertGreater(len(shard2Members), 1)
 
     #     # get the members of shard2 from node4
-    #     response = requests.get( 'http://localhost:8086/key-value-store-shard/shard-id-members/' + str(shard3))
+    #     response = requests.get( 'http://localhost:8086/key-value-store-shard/shard-id-members/' + str(shard3), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard3Members = responseInJson['shard-id-members']
@@ -415,7 +411,7 @@ class TestHW3(unittest.TestCase):
     #     self.assertEqual(len(shard1Members + shard2Members + shard3Members), len(nodeSocketAddressList) + 1)
 
     #     # get the shard id of node4
-    #     response = requests.get( 'http://localhost:8086/key-value-store-shard/node-shard-id')
+    #     response = requests.get( 'http://localhost:8086/key-value-store-shard/node-shard-id', timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
 
@@ -431,19 +427,19 @@ class TestHW3(unittest.TestCase):
     #         self.assertTrue(nodeSocketAddressList[3] in shard3Members)
 
     #     # get the shard1 key count from node5
-    #     response = requests.get('http://localhost:8087/key-value-store-shard/shard-id-key-count/' + str(shard1))
+    #     response = requests.get('http://localhost:8087/key-value-store-shard/shard-id-key-count/' + str(shard1), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard1KeyCount = int(responseInJson['shard-id-key-count'])
 
     #     # get the shard2 key count from node3
-    #     response = requests.get('http://localhost:8084/key-value-store-shard/shard-id-key-count/' + str(shard2))
+    #     response = requests.get('http://localhost:8084/key-value-store-shard/shard-id-key-count/' + str(shard2), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard2KeyCount = int(responseInJson['shard-id-key-count'])
 
     #     # get the shard3 key count from node1
-    #     response = requests.get('http://localhost:8082/key-value-store-shard/shard-id-key-count/' + str(shard3))
+    #     response = requests.get('http://localhost:8082/key-value-store-shard/shard-id-key-count/' + str(shard3), timeout=TIMEOUT)
     #     responseInJson = response.json()
     #     self.assertEqual(response.status_code, 200)
     #     shard3KeyCount = int(responseInJson['shard-id-key-count'])
@@ -472,7 +468,7 @@ class TestHW3(unittest.TestCase):
     #         nodeIndex = (counter + 1 ) % len(nodeIpList)
 
     #         # get the value of the key
-    #         response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter))
+    #         response = requests.get('http://localhost:' + nodeHostPortList[nodeIndex] + '/key-value-store/key' + str(counter), timeout=TIMEOUT)
     #         responseInJson = response.json()
     #         self.assertEqual(response.status_code, 200)
     #         value = responseInJson["value"]

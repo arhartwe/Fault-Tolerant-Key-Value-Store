@@ -6,8 +6,10 @@ import hashlib
 view = os.environ.get('VIEW')
 socket_address = os.environ.get('SOCKET_ADDRESS')
 replica_id = socket_address
-headers = {'Content-Type': 'application/json'}    
-shard_count = int(os.environ.get('SHARD_COUNT'))
+headers = {'Content-Type': 'application/json'} 
+shard_count = 1
+if os.environ.get('SHARD_COUNT') != None:
+    shard_count = int(os.environ.get('SHARD_COUNT'))
 
 # Replica objects
 key_store = {"init": 0}
@@ -28,7 +30,6 @@ for shard in shard_list:
     if replica_id in shard:
         shard_id = shard_list.index(shard)
         local_shard = shard
-        string = "value"
 
 # shard_list = [[0,1,2], [4,5,6]]
 # shard_id_list = [0,1]
