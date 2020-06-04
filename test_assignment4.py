@@ -52,7 +52,7 @@ def runInstance(hostPort, ipAddress, subnetName, instanceName):
 def runAdditionalInstance(hostPort, ipAddress, subnetName, instanceName, newView):
     command = "docker run --rm -d -p " + hostPort + ":8085 --net=" + subnetName + " --ip=" + ipAddress + " --name=" + instanceName + " -e SOCKET_ADDRESS=" + ipAddress + ":8085" + " -e VIEW=" + newView  + " assignment4-img"
     os.system(command)
-    time.sleep(5)
+    time.sleep(3)
 
 def stopAndRemoveInstance(instanceName):
     # stopCommand = "docker stop " + instanceName
@@ -92,7 +92,7 @@ class TestHW3(unittest.TestCase):
 
     shardIdList = []
     shardsMemberList = []
-    keyCount = 600
+    keyCount = 100
 
     ######################## Build docker image and create subnet ################################
     print("###################### Building Docker Image ######################\n")
@@ -316,7 +316,7 @@ class TestHW3(unittest.TestCase):
 
         runAdditionalInstance(node7HostPort, node7Ip, subnetName, "node7", newView)
 
-        # time.sleep(10)
+        time.sleep(10)
 
         # get the new view from node1
         response = requests.get( 'http://localhost:8082/key-value-store-view', timeout=TIMEOUT)

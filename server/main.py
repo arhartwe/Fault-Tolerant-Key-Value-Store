@@ -1,6 +1,6 @@
 from flask import Flask, json, jsonify, make_response, request, blueprints
 from collections import Counter
-from kvs import kvs_startup
+from kvs import kvs_startup, new_node_startup
 import vars
 from server import server_api
 from shard import shard_api
@@ -14,6 +14,7 @@ headers = {'Content-Type': 'application/json'}
 
 def main():
     if vars.shard_count == 1:
+        new_node_startup()
         app.run(debug=True, host='0.0.0.0', port=8085)
     else:
         kvs_startup()

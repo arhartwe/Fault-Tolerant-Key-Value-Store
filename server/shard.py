@@ -92,7 +92,7 @@ def get_shard_count():
 @shard_api.route("/key-value-store-shard/add-member/<shardID>", methods = ['PUT'])
 def add_shard_member(shardID):
     data = request.get_json()
-    shardID = int(shardID) - 1
+    shardID = int(shardID)
     new_replica = data["socket-address"]
     
     #1 Update shard count, shardID of new node
@@ -100,7 +100,7 @@ def add_shard_member(shardID):
     resp = {"shard-count": vars.shard_count, "shardID": shardID}
     requests.put(url, headers = headers, json=resp)
 
-    #2 Broadcast the socket-address of the new node to everyone's view list and shard list
+    #2 Broadcast the socket-address of the new node everyone's shard list
     for replica in vars.view_list:
         if replica != new_replica:
             url = "http://" + replica + "/key-value-store/add-node"

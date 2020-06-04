@@ -28,6 +28,21 @@ def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
                     # Keep broadcasting to rest of nodes
                     broadcast_kvs(view_list[next_replica:], socket_address, local_clock, key, request_address)
                     # delete_replica_view(socket_address, replica)
+
+def broadcast_clock(socket_address, local_clock, shardID, sender_socket):
+    for each in vars.shard_id_list:
+        if each != shardID:
+            for replica in vars.shard_list[each]:
+                if replica != sender_socket:
+                    print("Replica: " + str(replica) + "\n\n", file=sys.stderr)
+                    url = 'http://' + replica + '/update-clock'
+                    try:
+                        clock = {"causal-metadata":vars.local_clock}
+                        requests.put(url, json = clock, headers=headers)
+                    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                        pass
+
+
 def kvs_put(key, req, key_store):
     response = req.get_json()
     if 'value' not in response:
@@ -63,6 +78,15 @@ def kvs_delete(key, key_store):
         msg = {"doesExist": False, "error": "Key does not exist",
                 "message": "Error in DELETE"}
         return msg, 404
+
+def new_node_startup():
+    try:
+        for each in vars.view_list:
+            if vars.socket_address != each:
+                url = 'http://' + each + '/new-node-view'
+                requests.put(url, json={'socket-address':vars.socket_address}, headers=headers)
+    except:
+        pass
 
 def kvs_startup():
     try:

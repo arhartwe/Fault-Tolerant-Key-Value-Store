@@ -19,6 +19,20 @@ def get_kvs():
 def get_local_clock():
     return jsonify({"Local Clock":vars.local_clock})
 
+@server_api.route('/update-clock', methods = ['PUT'])
+def update_clock():
+    data = request.get_json()
+    vars.local_clock = data['causal-metadata']
+    return make_response("", 200)
+
+@server_api.route('/new-node-view', methods = ['PUT'])
+def new_node_view():
+    data = request.get_json()
+    # print(str(data['socket-address']) + "\n", file=sys.stderr)
+    if data['socket-address'] not in vars.view_list:
+        vars.view_list.append(data['socket-address'])
+    return make_response("", 200)
+
 # Updates the KVS, clock, shard-count, view 
 @server_api.route('/key-value-store/update-self', methods = ['PUT'])
 def receive_kvs():
@@ -45,8 +59,7 @@ def add_node():
     dataJson = request.get_json()
     new_socket = dataJson["socket-address"]
     shardID = dataJson["shardID"]
-
-    vars.view_list.append(new_socket)
+    
     vars.shard_list[int(shardID)].append(new_socket)
 
     return make_response("", 200)
@@ -66,9 +79,6 @@ def main_inst(key):
         status = 500
         key_shard_id = int(key_hash, 16) % vars.shard_count
 
-        # print ("Causal-metadata " + str(meta_data) + "\n", file = sys.stderr)
-        # print ("Value " + str(data['value']) + "\n", file = sys.stderr)
-
         if key_shard_id != vars.shard_id:
             new_shard_list = vars.shard_list[key_shard_id]
             # Broadcast to node in correct shard the key
@@ -79,9 +89,7 @@ def main_inst(key):
                 try:
                     if put_req:
                         data = {"causal-metadata":meta_data, "value":data['value']}
-                        print("value: " + str(data['value']), file = sys.stderr)
                         response = requests.put(url, json = data, headers=headers)
-                        # print ("URL " + str(url) + "\n", file = sys.stderr)
                         if response.status_code == 400 or response.status_code == 501:
                             print("Error on line 84, server.py", file = sys.stderr)
                             exit(1)
@@ -98,7 +106,6 @@ def main_inst(key):
         else:
             pass # Go ahead and continue as normal 
 
-        # print ("Key Shard ID equals vars.shard_id\n", file = sys.stderr)
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
         if type(meta_data) is not str and vars.socket_address not in meta_data.keys():           
             print("\nNot supposed to be in here\n" , file=sys.stderr )
@@ -107,23 +114,22 @@ def main_inst(key):
             vars.local_clock = meta_data
             kvs_startup() # Get a new kvs and tell other replicas to add this replica to the view
             
-        # print ("Metadata does hold a vector clock\n", file = sys.stderr)
         if compare_clocks(vars.view_list, meta_data, vars.local_clock, sender_socket):
             if put_req:
                 resp, status = kvs_put(key, request, vars.key_store)
             else:
                 resp, status = kvs_delete(key, vars.key_store)
-            # print("\n\nResp " + str(resp) + "\n\nStatus" + str(status) + "\n\n", file=sys.stderr)
             # If the message is from the client - Increment our local clock and broadcast to other replicas. 
             if sender_socket not in vars.view_list:
-                vars.local_clock[vars.socket_address] += 1
-                broadcast_kvs(vars.local_shard, vars.socket_address, vars.local_clock, key, sender_socket) # broadcast with my local clock
+                if sender_socket == vars.socket_address:
+                    vars.local_clock[vars.socket_address] += 1
+                # broadcast kvs to local shard
+                broadcast_kvs(vars.view_list, vars.socket_address, vars.local_clock, key, sender_socket) 
             else: # Message is from another replica and we just increment the sender address.
                 vars.local_clock[sender_socket] += 1
         
         # Go through the vars.queue and deliver any message that fulfils requirements.  
         else:
-            # print ("At Line 117\n", file = sys.stderr)
             req = request
             vars.queue.append((meta_data, request))
             for clock, req in vars.queue:
@@ -142,6 +148,8 @@ def main_inst(key):
 
                 
         resp["causal-metadata"] = vars.local_clock
+        if request.host == vars.socket_address:
+            broadcast_clock(vars.socket_address, vars.local_clock, vars.shard_id, sender_socket)
         return make_response(resp, status)
 
     elif request.method == 'GET':
