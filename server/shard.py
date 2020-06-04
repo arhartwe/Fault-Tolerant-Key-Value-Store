@@ -66,3 +66,96 @@ def shard_members(shardID):
         response = {}
         response['message'] = "Invalid Method"
         return make_response(response, 400)
+
+@shard_api.route('/key-value-store-shard/deleteallkvs/<count>', methods=['DELETE'])
+def delete_all(count):
+    if request.method == 'DELETE':
+        try:
+            # Store new shard count value in environment variable
+            new_shard_count = int(count)
+            os.environ['SHARD_COUNT'] = str(new_shard_count)
+
+            # Reshard the nodes according to new shard value
+            replication = len(vars.view_list) // new_shard_count
+            vars.shard_list = [vars.view_list[i:i+replication] for i in range(0, len(vars.view_list), replication)]
+            vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
+
+            # Index nodes according to new shard value
+            vars.local_shard = []
+            shard_id = -1
+            for shard in shard_list:
+                if replica_id in shard:
+                    shard_id = vars.shard_list.index(shard)
+                    vars.local_shard = shard
+                    string = "value"
+
+            vars.key_store = {}
+            response = {}
+            response['message'] = "Resharding done successfully"
+            return make_response(response, 200) 
+        except:
+            response = {}
+            response['message'] = "Unable to access SHARD_COUNT environment variable"
+            return make_response(response, 400)
+
+    else:
+        response = {}
+        response['message'] = "This endpoint only handles deletes"
+        return make_response(response, 400) 
+
+@shard_api.route('/key-value-store-shard/reshard', methods=['PUT'])
+def reshard():
+    # 1. check if 2 nodes per shard is possible
+    # 2. create 1 large kvs from all kvs stores
+    # 3. delete all kvs of all nodes? 
+    #    -> new endpoint that sets kvs to empty? kvs = {}
+    #    -> broadcast this to every node
+    # 4. Redestribute keys based on new shard value (for all keys, send PUT request)
+       
+    if request.method == 'PUT':
+        data = request.get_json()
+        new_shards = data['shard-count']
+        node_count = len(vars.view_list)
+
+        # if the shards can't be distributed so that one isn't left over OR
+        # if there are not at least 2x nodes as shards 
+        if(node_count % new_shards == 1 or new_shards > node_count // 2):
+            response = {}
+            response['message'] = "Not enough nodes to provide fault-tolerance with the given shard count!"
+            return make_response(response, 400)
+        else:
+            # Create a new kvs that will hold all keys across all shards
+            reshard_kvs = {}
+            for shards in vars.shard_list:
+                # Get all keys across all shards and update single large kvs
+                try:
+                    resp = requests.get("http://" + shards[0] + "/get-kvs",headers=headers)
+                    temp_store = {}
+                    temp_store = (resp.json())["kvs"]
+                    reshard_kvs.update(temp_store)
+                except:
+                    response = {}
+                    response['message'] = "Unable to create one large kvs for resharding"
+                    return make_response(response, 400)
+
+                # For every node in every shard, delete the current kvs 
+                for nodes in shards:
+                        url = "http://" + nodes + "/key-value-store-shard/deleteallkvs/" + str(new_shards)
+                        print(url, file=sys.stderr)
+                        requests.delete(url, headers=headers)
+
+        # For every key in the new compounded kvs, resdistributed keys (this can be optimized better)
+        for key in reshard_kvs:
+            url = "http://" + vars.view_list[0] + "/key-value-store/" + key
+            print(url, file=sys.stderr)
+            requests.put(url, data=data, headers=headers)
+
+        response = {}
+        response['message'] = "Resharding done successfully"
+        return make_response(response, 200)        
+
+
+    else:
+        response = {}
+        response['message'] = "Invalid Method"
+        return make_response(response, 400)
