@@ -64,6 +64,15 @@ def kvs_delete(key, key_store):
                 "message": "Error in DELETE"}
         return msg, 404
 
+def new_node_startup():
+    try:
+        for each in vars.view_list:
+            if vars.socket_address != each:
+                url = 'http://' + each + '/new-node-view'
+                requests.put(url, json={'socket-address':vars.socket_address}, headers=headers)
+    except:
+        pass
+
 def kvs_startup():
     try:
         for each in vars.local_shard:

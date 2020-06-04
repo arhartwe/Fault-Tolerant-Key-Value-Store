@@ -81,8 +81,8 @@ def delete_all(count):
             # Index nodes according to new shard value
             vars.local_shard = []
             shard_id = -1
-            for shard in shard_list:
-                if replica_id in shard:
+            for shard in vars.shard_list:
+                if vars.replica_id in shard:
                     shard_id = vars.shard_list.index(shard)
                     vars.local_shard = shard
                     string = "value"
@@ -157,6 +157,7 @@ def reshard():
         response = {}
         response['message'] = "Invalid Method"
         return make_response(response, 400)
+
 @shard_api.route("/key-value-store-shard/update-member", methods = ['PUT'])
 def update():
     data = request.get_json()
@@ -185,7 +186,7 @@ def get_shard_count():
 @shard_api.route("/key-value-store-shard/add-member/<shardID>", methods = ['PUT'])
 def add_shard_member(shardID):
     data = request.get_json()
-    shardID = int(shardID) - 1
+    shardID = int(shardID)
     new_replica = data["socket-address"]
     
     #1 Update shard count, shardID of new node

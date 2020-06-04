@@ -39,6 +39,13 @@ def receive_kvs():
 
     return make_response("", 200)
 
+@server_api.route('/new-node-view', methods = ['PUT'])
+def new_node_view():
+    data = request.get_json()
+    # print(str(data['socket-address']) + "\n", file=sys.stderr)
+    if data['socket-address'] not in vars.view_list:
+        vars.view_list.append(data['socket-address'])
+    return make_response("", 200)
 
 @server_api.route('/key-value-store/add-node', methods = ['PUT'])
 def add_node():
@@ -46,7 +53,6 @@ def add_node():
     new_socket = dataJson["socket-address"]
     shardID = dataJson["shardID"]
 
-    vars.view_list.append(new_socket)
     vars.shard_list[int(shardID)].append(new_socket)
 
     return make_response("", 200)
@@ -79,9 +85,7 @@ def main_inst(key):
                 try:
                     if put_req:
                         data = {"causal-metadata":meta_data, "value":data['value']}
-                        print("value: " + str(data['value']), file = sys.stderr)
                         response = requests.put(url, json = data, headers=headers)
-                        # print ("URL " + str(url) + "\n", file = sys.stderr)
                         if response.status_code == 400 or response.status_code == 501:
                             print("Error on line 84, server.py", file = sys.stderr)
                             exit(1)
@@ -98,7 +102,6 @@ def main_inst(key):
         else:
             pass # Go ahead and continue as normal 
 
-        # print ("Key Shard ID equals vars.shard_id\n", file = sys.stderr)
         # Check if metadata holds a vector clock, and replica socket is not in the metadata.
         if type(meta_data) is not str and vars.socket_address not in meta_data.keys():           
             print("\nNot supposed to be in here\n" , file=sys.stderr )
@@ -142,6 +145,8 @@ def main_inst(key):
 
                 
         resp["causal-metadata"] = vars.local_clock
+        if request.host == vars.socket_address:
+            broadcast_clock(vars.socket_address, vars.local_clock, vars.shard_id, sender_socket)
         return make_response(resp, status)
 
     elif request.method == 'GET':
