@@ -73,6 +73,7 @@ def delete_all(count):
         try:
             # Store new shard count value in environment variable
             new_shard_count = int(count)
+            vars.shard_count = new_shard_count
             os.environ['SHARD_COUNT'] = str(new_shard_count)
 
             # Reshard the nodes according to new shard value
