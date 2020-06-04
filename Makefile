@@ -4,16 +4,48 @@ NETWORK=mynet
 .PHONY: all init restart
 all: destroy network build
 init: network build 
-restart: stop remove build2
-allview: view1 view2 view3
-allclock: getclock1 getclock2 getclock3
+
+###############################################################################
+############################ CONTIANER OPERATIONS #############################
+###############################################################################
 
 build: network
 	docker build -t $(IMG) .
-	
+
 network:
 	docker network create --subnet=10.10.0.0/16 $(NETWORK)
 
+kill:
+	docker kill $$(docker ps -q)
+	
+# This removes and kills ALL docker images on the system
+# not just for this assignment.
+destroy: # If failing you can try to run with the -i flag   
+	docker kill $$(docker ps -q)
+	docker rm $$(docker ps -a -q)
+	docker rmi $$(docker images -q)
+	docker network rm $(NETWORK)
+
+# Stops all running containers and removes them
+stop:
+	docker stop $$(docker ps -a -q)
+
+remove:
+	docker container rm $$(docker container ls -aq)
+
+stop_remove:
+	docker stop $$(docker ps -a -q)
+	docker container rm $$(docker container ls -aq)
+
+build2: 
+	docker build -t $(IMG) .
+
+test:
+	python3 test_assignment4.py
+
+###############################################################################
+################################## REPLICAS ###################################
+###############################################################################
 replica1:
 	docker run --rm -p 8082:8085 --net=$(NETWORK) --ip=10.10.0.2 --name="node1" \
 	-e SOCKET_ADDRESS="10.10.0.2:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
@@ -44,38 +76,13 @@ replica6:
         -e SOCKET_ADDRESS="10.10.0.7:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085" \
 	-e SHARD_COUNT="2" $(IMG)
 
-put1:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8082/key-value-store/x
+replica7:
+	docker run --rm -p 8089:8085 --net=mynet --ip=10.10.0.8 --name="node7" \
+        -e SOCKET_ADDRESS="10.10.0.8:8085" -e VIEW="10.10.0.2:8085,10.10.0.3:8085,10.10.0.4:8085,10.10.0.5:8085,10.10.0.6:8085,10.10.0.7:8085,10.10.0.8:8085" $(IMG)
 
-put2:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8083/key-value-store/x
-
-put3:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8084/key-value-store/x
-
-update1: 
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":2, "causal-metadata": ""}' http://localhost:8083/key-value-store/x
-
-update2:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8084/key-value-store/x
-
-get1:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store/x
-
-get2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store/x
-
-get3:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store/x
-
-view1:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-view
-
-view2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-view
-
-view3:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-view
+###############################################################################
+################################# CONNECTIONS #################################
+###############################################################################	
 
 connect1:
 	docker network connect mynet replica1
@@ -86,6 +93,22 @@ connect2:
 connect3:
 	docker network connect mynet replica3
 
+connect4:
+	docker network connect mynet replica4
+
+connect5:
+	docker network connect mynet replica5
+
+connect6:
+	docker network connect mynet replica6
+
+connect7:
+	docker network connect mynet replica7
+
+###############################################################################
+################################ DISCONNECTIONS ###############################
+###############################################################################	
+
 disconnect1:
 	docker network disconnect mynet replica1
 
@@ -95,14 +118,96 @@ disconnect2:
 disconnect3:
 	docker network disconnect mynet replica3
 
-getclock1:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/get-local-clock
+disconnect4:
+	docker network disconnect mynet replica4
 
-getclock2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/get-local-clock
+disconnect5:
+	docker network disconnect mynet replica5
 
-getclock3:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/get-local-clock
+disconnect6:
+	docker network disconnect mynet replica6
+
+disconnect7:
+	docker network disconnect mynet replica7
+
+###############################################################################
+##################################### PUT #####################################
+###############################################################################
+
+put1:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value0", "causal-metadata": ""}' http://localhost:8082/key-value-store/key0
+
+put2:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value1", "causal-metadata": ""}' http://localhost:8083/key-value-store/key1
+
+put3:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value2", "causal-metadata": ""}' http://localhost:8084/key-value-store/key2
+
+put4:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8086/key-value-store/x
+
+put5:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8087/key-value-store/x
+put6:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8088/key-value-store/x
+
+put7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8089/key-value-store/x
+
+
+###############################################################################
+################################### GET #######################################
+###############################################################################
+
+get1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store/key2
+
+get2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store/key0
+
+get3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store/key1
+
+get4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store/key2
+
+get5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store/key2
+
+get6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store/key2
+
+get7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store/x
+
+###############################################################################
+################################## UPDATE #####################################
+###############################################################################
+
+update1: 
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":2, "causal-metadata": ""}' http://localhost:8082/key-value-store/x
+
+update2:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8083/key-value-store/x
+
+update3:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8084/key-value-store/x
+
+update4:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8086/key-value-store/x
+
+update5:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8087/key-value-store/x
+
+update6:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8088/key-value-store/x
+
+update7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":10, "causal-metadata": ""}' http://localhost:8089/key-value-store/x
+
+###############################################################################
+################################## DELETIONS ##################################
+###############################################################################
 
 delete1:
 	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8082/key-value-store/x
@@ -113,37 +218,193 @@ delete2:
 delete3:
 	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8084/key-value-store/x
 
-shardidmembers1:
+delete4:
+	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8086/key-value-store/x
+
+delete5:
+	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8087/key-value-store/x
+
+delete6:
+	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8088/key-value-store/x
+
+delete7:
+	curl --request DELETE --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"causal-metadata": ""}' http://localhost:8089/key-value-store/x
+
+###############################################################################
+################################### VIEWS #####################################
+###############################################################################
+
+view1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-view
+
+view2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-view
+
+view3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-view
+
+view4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-view
+
+view5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-view
+
+view6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-view
+
+view7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-view
+
+###############################################################################
+############################## GET LOCAL CLOCK ################################
+###############################################################################
+
+getclock1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/get-local-clock
+
+getclock2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/get-local-clock
+
+getclock3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/get-local-clock
+
+getclock4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/get-local-clock
+
+getclock5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/get-local-clock
+
+getclock6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/get-local-clock
+
+getclock7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/get-local-clock
+
+###############################################################################
+################################ SHARD MEMBERS ################################
+###############################################################################
+
+shardmembers1:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/0
 
-shardidmembers2:
-	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/shard-id-members/1
+shardmembers2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-shard/shard-id-members/0
 
+shardmembers3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-shard/shard-id-members/0
 
-kill:
-	docker kill $$(docker ps -q)
+shardmembers4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/shard-id-members/1
+
+shardmembers5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/shard-id-members/1
+
+shardmembers6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/shard-id-members/1
+
+shardmembers7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/shard-id-members/1
+
+###############################################################################
+################################## ADD MEMBER #################################
+###############################################################################
+
+addmember7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085"}' http://localhost:8082/key-value-store-shard/add-member/2
+
+###############################################################################
+############################### GET SHARD LIST ################################
+###############################################################################
+
+shardlist1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/get-shard-list
+
+shardlist2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-shard/get-shard-list
+
+shardlist3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-shard/get-shard-list
+
+shardlist4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/get-shard-list
+
+shardlist5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/get-shard-list
+
+shardlist6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/get-shard-list
+
+shardlist7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/get-shard-list
+
+###############################################################################
+############################### GET SHARD COUNT ###############################
+###############################################################################
+
+shardcount1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/key-value-store-shard/get-shard-count
+
+shardcount2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/key-value-store-shard/get-shard-count
+
+shardcount3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/key-value-store-shard/get-shard-count
+
+shardcount4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/key-value-store-shard/get-shard-count
+
+shardcount5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/key-value-store-shard/get-shard-count
+
+shardcount6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/key-value-store-shard/get-shard-count
+
+shardcount7:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8089/key-value-store-shard/get-shard-count
+
+###############################################################################
+################################### ADD NODE ##################################
+###############################################################################
+
+addnode1:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8082/key-value-store/add-node
+
+addnode2:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8083/key-value-store/add-node
+
+addnode3:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8084/key-value-store/add-node
+
+addnode4:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8086/key-value-store/add-node
+
+addnode5:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8087/key-value-store/add-node
+
+addnode6:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8088/key-value-store/add-node
 	
-# This removes and kills ALL docker images on the system
-# not just for this assignment.
-destroy: # If failing you can try to run with the -i flag   
-	docker kill $$(docker ps -q)
-	docker rm $$(docker ps -a -q)
-	docker rmi $$(docker images -q)
-	docker network rm $(NETWORK)
+addnode7:
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"socket-address":"10.10.0.8:8085", "shardID":1}' http://localhost:8089/key-value-store/add-node
 
-# Stops all running containers and removes them
-stop:
-	docker stop $$(docker ps -a -q)
+###############################################################################
+##################################### KVS #####################################
+###############################################################################
 
-remove:
-	docker container rm $$(docker container ls -aq)
+kvs1:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8082/get-kvs
 
-stop_remove:
-	docker stop $$(docker ps -a -q)
-	docker container rm $$(docker container ls -aq)
+kvs2:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8083/get-kvs
 
-build2: 
-	docker build -t $(IMG) .
+kvs3:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8084/get-kvs
 
-test:
-	python3 test_assignment3.py
+kvs4:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8086/get-kvs
+
+kvs5:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8087/get-kvs
+
+kvs6:
+	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/get-kvs
