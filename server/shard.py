@@ -74,8 +74,8 @@ def delete_all(count):
             os.environ['SHARD_COUNT'] = str(new_shard_count)
 
             # Reshard the nodes according to new shard value
-            replication = len(vars.view_list) // new_shard_count
-            vars.shard_list = [vars.view_list[i:i+replication] for i in range(0, len(vars.view_list), replication)]
+            for index in range(0, len(view_list)):
+                vars.shard_list[index % new_shard_count] = view_list[index]
             vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
 
             # Index nodes according to new shard value
@@ -85,7 +85,6 @@ def delete_all(count):
                 if vars.replica_id in shard:
                     shard_id = vars.shard_list.index(shard)
                     vars.local_shard = shard
-                    string = "value"
 
             vars.key_store = {}
             response = {}
@@ -117,7 +116,7 @@ def reshard():
 
         # if the shards can't be distributed so that one isn't left over OR
         # if there are not at least 2x nodes as shards 
-        if(node_count % new_shards == 1 or new_shards > node_count // 2):
+        if new_shards > node_count or new_shards * 2 > node_count:
             response = {}
             response['message'] = "Not enough nodes to provide fault-tolerance with the given shard count!"
             return make_response(response, 400)
@@ -134,7 +133,7 @@ def reshard():
                 except:
                     response = {}
                     response['message'] = "Unable to create one large kvs for resharding"
-                    return make_response(response, 400)
+                    return make_response(response, 401)
 
                 # For every node in every shard, delete the current kvs 
                 for nodes in shards:
