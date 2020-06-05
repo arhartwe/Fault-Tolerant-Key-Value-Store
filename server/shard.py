@@ -4,9 +4,8 @@ import vars
 import os, sys, time, requests
 headers = {'Content-Type': 'application/json'}   
 
-
 shard_api = Blueprint('shard_api', __name__)
-
+new_shard_list = [ [] for x in range(0, 3)]
 @shard_api.route("/key-value-store-shard/shard-ids", methods=['GET'])
 def shard_id():
     if request.method == 'GET':
@@ -73,13 +72,13 @@ def delete_all(count):
             vars.shard_count = new_shard_count
             os.environ['SHARD_COUNT'] = str(new_shard_count)
 
-            # Reshard the nodes according to new shard value
-            new_shard_list = [[] for _ in range(new_shard_count)]
-            for index in range(0, len(view_list)):
-                new_shard_list([index % new_shard_count]).append(view_list[index])
+            global new_shard_list
+            for i in range(0, len(vars.view_list)):
+                new_shard_list[i % new_shard_count].append(vars.view_list[i])
+
             vars.shard_list = new_shard_list
             vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
-
+            
             # Index nodes according to new shard value
             vars.local_shard = []
             shard_id = -1
@@ -92,15 +91,16 @@ def delete_all(count):
             response = {}
             response['message'] = "Resharding done successfully"
             return make_response(response, 200) 
-        except:
+        except Exception as e:
+            new_shard_list.append(str(e))
             response = {}
             response['message'] = "Unable to access SHARD_COUNT environment variable"
-            return make_response(response, 400)
+            return make_response(response, 405)
 
     else:
         response = {}
         response['message'] = "This endpoint only handles deletes"
-        return make_response(response, 400) 
+        return make_response(response, 404) 
 
 @shard_api.route('/key-value-store-shard/reshard', methods=['PUT'])
 def reshard():
@@ -148,11 +148,12 @@ def reshard():
             url = "http://" + vars.view_list[0] + "/key-value-store/" + key
             print(url, file=sys.stderr)
             requests.put(url, data=data, headers=headers)
-
+        
         response = {}
         response['message'] = "Resharding done successfully"
-        response['shard_list'] = vars.shard_list
+        response['shards'] = new_shard_list
         response['shard_count'] = vars.shard_count
+        response['shardid'] = vars.shard_id_list
         return make_response(response, 200)        
 
 
