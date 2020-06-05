@@ -74,8 +74,10 @@ def delete_all(count):
             os.environ['SHARD_COUNT'] = str(new_shard_count)
 
             # Reshard the nodes according to new shard value
+            new_shard_list = [[] for _ in range(new_shard_count)]
             for index in range(0, len(view_list)):
-                vars.shard_list[index % new_shard_count] = view_list[index]
+                new_shard_list([index % new_shard_count]).append(view_list[index])
+            vars.shard_list = new_shard_list
             vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
 
             # Index nodes according to new shard value
@@ -83,7 +85,7 @@ def delete_all(count):
             shard_id = -1
             for shard in vars.shard_list:
                 if vars.replica_id in shard:
-                    shard_id = vars.shard_list.index(shard)
+                    vars.shard_id = vars.shard_list.index(shard)
                     vars.local_shard = shard
 
             vars.key_store = {}
@@ -149,6 +151,8 @@ def reshard():
 
         response = {}
         response['message'] = "Resharding done successfully"
+        response['shard_list'] = vars.shard_list
+        response['shard_count'] = vars.shard_count
         return make_response(response, 200)        
 
 
