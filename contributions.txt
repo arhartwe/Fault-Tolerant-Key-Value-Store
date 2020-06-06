@@ -12,3 +12,8 @@ put a new node into a shard
 helped with resharding
 debugging/unittesting
 
+Andrew Hartwell (arhartwe)
+
+completed endpoint for shard-id-key-count
+updated kvs DELETE requests
+did primary logic implementation for reshard
