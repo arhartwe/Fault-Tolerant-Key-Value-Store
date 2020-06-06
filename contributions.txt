@@ -1,0 +1,5 @@
+Robert Mushkot (rmushkot)
+shard-id and node-shard-id endpoint
+udpated kvs PUT requests
+create vars file and content in there
+helped with resharding
