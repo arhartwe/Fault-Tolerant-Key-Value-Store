@@ -1,12 +1,10 @@
 from flask import Flask, json, jsonify, make_response, request, Blueprint
 from collections import Counter
 import vars
-import os, sys, time, requests
+import os, sys, time, requests, hashlib
 headers = {'Content-Type': 'application/json'}   
 
-
 shard_api = Blueprint('shard_api', __name__)
-
 @shard_api.route("/key-value-store-shard/shard-ids", methods=['GET'])
 def shard_id():
     if request.method == 'GET':
@@ -43,7 +41,9 @@ def key_count(shardID):
     node_keys = (resp.json())["kvs"]
 
     # Every node in a shard should have same # of items in kvs, so kvs * nodes in shard gives total key count
-    count = len(node_keys) - 1
+    count = len(node_keys)
+    if 'init' in node_keys.keys():
+        count -= 1
     ans = {"message":"Key count of shard ID retrieved successfully","shard-id-key-count":count}
     return make_response(jsonify(ans), 200)
 
@@ -73,33 +73,33 @@ def delete_all(count):
             vars.shard_count = new_shard_count
             os.environ['SHARD_COUNT'] = str(new_shard_count)
 
-            # Reshard the nodes according to new shard value
-            replication = len(vars.view_list) // new_shard_count
-            vars.shard_list = [vars.view_list[i:i+replication] for i in range(0, len(vars.view_list), replication)]
-            vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
+            new_shard_list = [ [] for x in range(0, 3)]
+            for i in range(0, len(vars.view_list)):
+                new_shard_list[i % new_shard_count].append(vars.view_list[i])
 
+            vars.shard_list = new_shard_list
+            vars.shard_id_list = [i for i in range(0, len(vars.shard_list))]
+            
             # Index nodes according to new shard value
-            vars.local_shard = []
-            shard_id = -1
             for shard in vars.shard_list:
                 if vars.replica_id in shard:
-                    shard_id = vars.shard_list.index(shard)
+                    vars.shard_id = vars.shard_list.index(shard)
                     vars.local_shard = shard
-                    string = "value"
 
             vars.key_store = {}
             response = {}
             response['message'] = "Resharding done successfully"
             return make_response(response, 200) 
-        except:
+        except Exception as e:
+            new_shard_list.append(str(e))
             response = {}
             response['message'] = "Unable to access SHARD_COUNT environment variable"
-            return make_response(response, 400)
+            return make_response(response, 405)
 
     else:
         response = {}
         response['message'] = "This endpoint only handles deletes"
-        return make_response(response, 400) 
+        return make_response(response, 404) 
 
 @shard_api.route('/key-value-store-shard/reshard', methods=['PUT'])
 def reshard():
@@ -114,10 +114,11 @@ def reshard():
         data = request.get_json()
         new_shards = data['shard-count']
         node_count = len(vars.view_list)
+        response = {}
 
         # if the shards can't be distributed so that one isn't left over OR
         # if there are not at least 2x nodes as shards 
-        if(node_count % new_shards == 1 or new_shards > node_count // 2):
+        if new_shards > node_count or new_shards * 2 > node_count:
             response = {}
             response['message'] = "Not enough nodes to provide fault-tolerance with the given shard count!"
             return make_response(response, 400)
@@ -134,24 +135,32 @@ def reshard():
                 except:
                     response = {}
                     response['message'] = "Unable to create one large kvs for resharding"
-                    return make_response(response, 400)
-
+                    return make_response(response, 401)
                 # For every node in every shard, delete the current kvs 
-                for nodes in shards:
-                        url = "http://" + nodes + "/key-value-store-shard/deleteallkvs/" + str(new_shards)
+            try:
+                for shards in vars.shard_list:
+                    for node in shards:
+                        url = "http://" + node + "/key-value-store-shard/deleteallkvs/" + str(new_shards)
                         print(url, file=sys.stderr)
                         requests.delete(url, headers=headers)
 
-        # For every key in the new compounded kvs, resdistributed keys (this can be optimized better)
-        for key in reshard_kvs:
-            url = "http://" + vars.view_list[0] + "/key-value-store/" + key
-            print(url, file=sys.stderr)
-            requests.put(url, data=data, headers=headers)
+                # For every key in the new compounded kvs, resdistributed keys (this can be optimized better)
+                for key in reshard_kvs.keys():
+                    if key == 'init':
+                        continue
+                    
+                    key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
+                    key_shard_id = int(key_hash, 16) % vars.shard_count
 
-        response = {}
+                    for node in vars.shard_list[key_shard_id]:
+                        url = "http://" + node + "/key-value-store/" + key
+                        new_data = {"value": reshard_kvs[key], "causal-metadata": vars.local_clock}
+                        requests.put(url, json=dict(new_data), headers=headers)
+            except Exception as e:
+                response['error'] = str(e)
+        
         response['message'] = "Resharding done successfully"
         return make_response(response, 200)        
-
 
     else:
         response = {}

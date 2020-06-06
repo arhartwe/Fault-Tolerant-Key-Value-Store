@@ -31,6 +31,3 @@ for shard in shard_list:
         shard_id = shard_list.index(shard)
         local_shard = shard
 
-# shard_list = [[0,1,2], [4,5,6]]
-# shard_id_list = [0,1]
-# shard_id = 0
