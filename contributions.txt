@@ -3,3 +3,12 @@ shard-id and node-shard-id endpoint
 udpated kvs PUT requests
 create vars file and content in there
 helped with resharding
+
+Timothy Lo (tclo)
+get shardID members
+add-member with shardID
+get key from a shard
+put a new node into a shard
+helped with resharding
+debugging/unittesting
+
