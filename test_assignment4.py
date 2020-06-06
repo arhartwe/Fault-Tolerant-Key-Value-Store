@@ -60,8 +60,6 @@ def stopAndRemoveInstance(instanceName):
     os.system(stopCommand)
     time.sleep(2)
     os.system(removeCommand)
-    # command = "docker kill " + str(instanceName)
-    # os.system(command)
 
 def connectToNetwork(subnetName, instanceName):
     command = "docker network connect " + subnetName + " " + instanceName

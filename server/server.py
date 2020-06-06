@@ -19,6 +19,12 @@ def get_kvs():
 def get_local_clock():
     return jsonify({"Local Clock":vars.local_clock})
 
+@server_api.route('/update-clock', methods = ['PUT'])
+def update_clock():
+    data = request.get_json()
+    vars.local_clock = data['causal-metadata']
+    return make_response("", 200)
+
 # Updates the KVS, clock, shard-count, view 
 @server_api.route('/key-value-store/update-self', methods = ['PUT'])
 def receive_kvs():
@@ -72,9 +78,6 @@ def main_inst(key):
         status = 500
         key_shard_id = int(key_hash, 16) % vars.shard_count
 
-        # print ("Causal-metadata " + str(meta_data) + "\n", file = sys.stderr)
-        # print ("Value " + str(data['value']) + "\n", file = sys.stderr)
-
         if key_shard_id != vars.shard_id:
             new_shard_list = vars.shard_list[key_shard_id]
             # Broadcast to node in correct shard the key
@@ -110,13 +113,11 @@ def main_inst(key):
             vars.local_clock = meta_data
             kvs_startup() # Get a new kvs and tell other replicas to add this replica to the view
             
-        # print ("Metadata does hold a vector clock\n", file = sys.stderr)
         if compare_clocks(vars.view_list, meta_data, vars.local_clock, sender_socket):
             if put_req:
                 resp, status = kvs_put(key, request, vars.key_store)
             else:
                 resp, status = kvs_delete(key, vars.key_store)
-            # print("\n\nResp " + str(resp) + "\n\nStatus" + str(status) + "\n\n", file=sys.stderr)
             # If the message is from the client - Increment our local clock and broadcast to other replicas. 
             if sender_socket not in vars.view_list:
                 vars.local_clock[vars.socket_address] += 1
@@ -126,7 +127,6 @@ def main_inst(key):
         
         # Go through the vars.queue and deliver any message that fulfils requirements.  
         else:
-            # print ("At Line 117\n", file = sys.stderr)
             req = request
             vars.queue.append((meta_data, request))
             for clock, req in vars.queue:
@@ -150,9 +150,7 @@ def main_inst(key):
         return make_response(resp, status)
 
     elif request.method == 'GET':
-        # 1) find out which shard the key belongs to
         key_hash_shard_id = int(key_hash, 16) % vars.shard_count
-        # 2) Check if key belongs in your shard
         if key_hash_shard_id == vars.shard_id:
             if key in vars.key_store:
                 value = vars.key_store[key]
@@ -163,7 +161,6 @@ def main_inst(key):
                     "message": "Error in GET", "causal-metadata": vars.local_clock}
                 return make_response(ans, 412)
         else:
-            # 3) Send a get request to the correct shard
             correctShard = vars.shard_list[key_hash_shard_id]
             try:
                 url = "http://" + correctShard[0] + "/key-value-store/" + key
@@ -176,14 +173,6 @@ def main_inst(key):
             except Exception as e:
                 ans = {"e": str(e), "status_code":resp.status_code}
                 return make_response(ans, 521)
-
-            # if resp.status_code == 200:
-            #     ans = {"message":"Retrieved successfully", "causal-metadata": respJson["causal-metadata"], "value":respJson["value"]}
-            #     return make_response(jsonify(ans), 200)
-            # else:
-            #     ans = {"doesExist": False, "error": "Key does not exist",
-            #         "message": "Error in GET", "causal-metadata": respJson["causal-metadata"]}
-            #     return make_response(jsonify(ans), 405)
     else:
         return "Fail"
 

@@ -6,7 +6,6 @@ import sys
 
 headers = {'Content-Type': 'application/json'}  
 
-# TODO: change view_list to local shard list
 def broadcast_kvs(view_list, socket_address, local_clock, key, request_address):
     # Skip if request is from another replica
     if request_address not in view_list:
@@ -81,7 +80,5 @@ def kvs_startup():
                 requests.put(update_url, json={'socket-address': vars.socket_address}, headers=headers)
                 resp = requests.get("http://" + each + "/get-kvs",headers=headers)
                 vars.key_store = (resp.json())["kvs"]
-    except:
-    # except Exception as e:
-        # print(e, file=sys.stderr)  
+    except: 
         pass

@@ -1,7 +1,7 @@
 from flask import Flask, json, jsonify, make_response, request, Blueprint
 from collections import Counter
 import vars
-import os, sys, time, requests
+import os, sys, time, requests, hashlib
 headers = {'Content-Type': 'application/json'}   
 
 shard_api = Blueprint('shard_api', __name__)
@@ -136,7 +136,6 @@ def reshard():
                     response = {}
                     response['message'] = "Unable to create one large kvs for resharding"
                     return make_response(response, 401)
-
                 # For every node in every shard, delete the current kvs 
             try:
                 for shards in vars.shard_list:
@@ -149,11 +148,14 @@ def reshard():
                 for key in reshard_kvs.keys():
                     if key == 'init':
                         continue
+                    
+                    key_hash = (hashlib.sha1(key.encode('utf8'))).hexdigest()
+                    key_shard_id = int(key_hash, 16) % vars.shard_count
 
-                    url = "http://" + vars.view_list[0] + "/key-value-store/" + key
-                    print(url, file=sys.stderr)
-                    new_data = {"value": reshard_kvs[key], "causal-metadata": vars.local_clock}
-                    requests.put(url, json=dict(new_data), headers=headers)
+                    for node in vars.shard_list[key_shard_id]:
+                        url = "http://" + node + "/key-value-store/" + key
+                        new_data = {"value": reshard_kvs[key], "causal-metadata": vars.local_clock}
+                        requests.put(url, json=dict(new_data), headers=headers)
             except Exception as e:
                 response['error'] = str(e)
         

@@ -3,10 +3,12 @@ NETWORK=mynet
 
 .PHONY: all init restart
 all: destroy network build
-init: network build 
+init: network build
+putall: put1 put2 put3 put4 put5 put6
+restart: kill build2 
 
 ###############################################################################
-############################ CONTIANER OPERATIONS #############################
+############################ CONTAINER OPERATIONS #############################
 ###############################################################################
 
 build: network
@@ -144,15 +146,16 @@ put3:
 	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value2", "causal-metadata": ""}' http://localhost:8084/key-value-store/key2
 
 put4:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8086/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value3", "causal-metadata": ""}' http://localhost:8086/key-value-store/key3
 
 put5:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8087/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value4", "causal-metadata": ""}' http://localhost:8087/key-value-store/key4
+
 put6:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8088/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value5", "causal-metadata": ""}' http://localhost:8088/key-value-store/key5
 
 put7:
-	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":1, "causal-metadata": ""}' http://localhost:8089/key-value-store/x
+	curl --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"value":"value6", "causal-metadata": ""}' http://localhost:8089/key-value-store/key6
 
 
 ###############################################################################
@@ -408,3 +411,14 @@ kvs5:
 
 kvs6:
 	curl --request GET --header "Content-Type: application/json" --write-out "\n%{http_code}\n" http://localhost:8088/get-kvs
+
+###############################################################################
+################################## RESHARD ####################################
+###############################################################################
+
+reshard1:
+	curl  --request PUT --header "Content-Type: application/json" --write-out "\n%{http_code}\n" --data '{"shard-count":3}' http://localhost:8082/key-value-store-shard/reshard
+
+
+
+
