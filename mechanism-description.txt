@@ -1,3 +1,14 @@
+Mechanism for sharding:
+
+The mechanism for sharding works by first ensuring that it is possible for every shard
+to have 2 nodes under it. If this is not the case, then there is no way to ensure
+fault tolerance after the reshard and so it will return an error. If there are enough
+nodes for the distribution, the next step is creating a single large key-value store that
+contains the keys across all shards. Next, every node in every shard should have its
+key-value store erased as the keys are no longer appropriately hashed. With the new
+shard count now available, the keys are redistributed accordingly and the reshard
+is completed.
+
 Mechanism for casual dependency tracking:
 
 Our methodolgy for tracking casual dependency utilized a Counter that maps a replica's 
