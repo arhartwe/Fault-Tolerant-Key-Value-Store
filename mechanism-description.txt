@@ -29,4 +29,4 @@ remove its socket from the view as well as its causual metadata.
 When a downed replica comes back online, it first updates its key-value store with a replica
 that is up. It then updates the causal meta-data it receives from the client with its
 own vector clock. Finally, the reconnected replica broadcasts to the others to place itself in
-their view.   
+their view.    
