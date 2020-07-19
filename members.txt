@@ -1,5 +1,0 @@
-Team Members:
-
-1) Timothy Lo (tclo@ucsc.edu)
-2) Robert Mushkot (rmushkot@ucsc.edu)
-3) Andrew Hartwell (arhartwe@ucsc.edu)
