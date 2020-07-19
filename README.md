@@ -1,4 +1,4 @@
-# CSE138 Assignment4
+# Fault Tolerant Key-Value Store
 
 Python 3.7 implementation of an available, causally consistent, sharded, distributed key value store
 
